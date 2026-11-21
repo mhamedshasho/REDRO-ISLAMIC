@@ -807,9 +807,19 @@ function updateSebhaUI() {
   $('#sebhaPhrase').textContent = p.text;
   $('#sebhaCount').textContent = state.sebha.count;
   $('#sebhaTarget').textContent = p.target;
+  const progressText = $('#sebhaProgressText');
+  if (progressText) progressText.textContent = `${Math.min(state.sebha.count, p.target)} من ${p.target}`;
+  const goalMessage = $('#sebhaGoalMessage');
+  if (goalMessage) goalMessage.classList.toggle('hidden', state.sebha.count < p.target);
   const ring = $('#sebhaRing');
   if (ring) ring.style.setProperty('--progress', `${Math.min(100, (state.sebha.count / p.target) * 100)}%`);
   $('#sebhaHadith').innerHTML = `<p>${p.hadith}</p>`;
+}
+
+function resetAppSettings() {
+  if (!window.confirm('إعادة الإعدادات الافتراضية؟ لن يتم حذف المصحف أو البيانات المنزلة.')) return;
+  state.settings = { theme: 'dark', sound: true, vibration: true, notifications: false, reciter: 'mishary', quranReciter: 'ar.alafasy', prayerNotifications: { ...DEFAULT_PRAYER_NOTIFICATIONS } };
+  persistSettings(); applyTheme(); openSettings(); updateNotificationStatus('تمت إعادة الإعدادات الافتراضية.');
 }
 
 function sebhaTap() {
@@ -1114,6 +1124,7 @@ function init() {
 
   $('#sebhaTap').onclick = sebhaTap;
   $('#sebhaReset').onclick = () => {
+    if (!window.confirm('إعادة عداد المسبحة إلى صفر؟')) return;
     state.sebha.count = 0;
     updateSebhaUI();
     saveState();
@@ -1318,10 +1329,15 @@ function setupSettingsUI() {
   document.getElementById('closeTafsir')?.addEventListener('click', () => document.getElementById('tafsirModal').classList.add('hidden'));
   document.getElementById('settingsSearch')?.addEventListener('input', e => {
     const query = e.target.value.trim().toLowerCase();
-    document.querySelectorAll('#settingsModal .settings-section').forEach(section => {
+    const sections = document.querySelectorAll('#settingsModal .settings-section');
+    let visible = 0;
+    sections.forEach(section => {
       section.classList.toggle('hidden', !!query && section.textContent.toLowerCase().indexOf(query) < 0);
+      if (!section.classList.contains('hidden')) visible += 1;
     });
+    document.getElementById('settingsNoResults')?.classList.toggle('hidden', visible !== 0 || !query);
   });
+  document.getElementById('resetSettingsBtn')?.addEventListener('click', resetAppSettings);
   document.getElementById('notificationsEnabled')?.addEventListener('change', async e => { if (e.target.checked) { const ok = await requestNotificationPermission(); state.settings.notifications = ok; e.target.checked = ok; if (ok) await schedulePrayerNotifications(); else updateNotificationStatus('لم يتم منح صلاحية الإشعارات.'); } else { state.settings.notifications = false; const plugin = nativeLocalNotifications(); if (plugin) await plugin.cancelAll(); updateNotificationStatus('الإشعارات متوقفة.'); } persistSettings(); });
   document.getElementById('requestNotifications')?.addEventListener('click', async () => { const ok = await requestNotificationPermission(); state.settings.notifications = ok; document.getElementById('notificationsEnabled').checked = ok; if (ok) await schedulePrayerNotifications(); else updateNotificationStatus('لم يتم منح صلاحية الإشعارات.'); persistSettings(); });
   document.getElementById('testNotification')?.addEventListener('click', async () => {
