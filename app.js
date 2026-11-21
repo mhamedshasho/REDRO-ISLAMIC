@@ -691,6 +691,7 @@ function stopAudio() {
 
 async function showTafsir() {
   const box = $('#tafsirBox');
+  if (!box || !state.currentSurah) return;
   if (!box.classList.contains('hidden')) {
     box.classList.add('hidden');
     return;
@@ -699,7 +700,7 @@ async function showTafsir() {
   box.innerHTML = '<p>جاري تحميل التفسير...</p>';
   try {
     // Using Muyassar tafsir (simple)
-    const res = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurah}/ar.muyassar`);
+    const res = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurah}/ar.muyassar`, { cache: 'no-store' });
     const data = await res.json();
     if (data.code === 200) {
       let html = '<h4 style="margin-bottom:12px;">تفسير ميسر</h4>';
@@ -709,10 +710,11 @@ async function showTafsir() {
       if (data.data.ayahs.length > 10) html += '<p style="color:#64748b">... (عرض أول 10 آيات)</p>';
       box.innerHTML = html;
     } else {
-      box.innerHTML = '<p>تعذر تحميل التفسير حالياً. يمكنك الرجوع لكتب التفسير المعتمدة.</p>';
+      box.innerHTML = '<p>تعذر تحميل التفسير حالياً. تحقق من اتصال الإنترنت ثم اضغط الزر مرة أخرى.</p>';
     }
-  } catch {
-    box.innerHTML = '<p>تعذر الاتصال. جرب لاحقاً.</p>';
+  } catch (error) {
+    console.error('Tafsir loading error', error);
+    box.innerHTML = '<p>تعذر الاتصال بخدمة التفسير. جرّب لاحقاً.</p>';
   }
 }
 
@@ -1233,7 +1235,15 @@ function openSettings() {
   document.getElementById('soundEnabled').checked = !!state.settings.sound;
   const select = document.getElementById('adhanReciter');
   select.innerHTML = ADHAN_RECITERS.map(r => `<option value="${r.id}">${r.name}</option>`).join(''); select.value = state.settings.reciter;
+  updateSelectedAdhanReciter();
   renderPrayerNotificationToggles(); updateNotificationStatus();
+}
+function updateSelectedAdhanReciter() {
+  const select = document.getElementById('adhanReciter');
+  const label = document.getElementById('selectedAdhanReciter');
+  if (!select || !label) return;
+  const selected = ADHAN_RECITERS.find(r => r.id === select.value) || ADHAN_RECITERS[0];
+  label.innerHTML = `<i class="fas fa-check-circle"></i> المؤذن المختار: <strong>${selected.name}</strong>`;
 }
 function updateNotificationStatus(message) {
   const el = document.getElementById('notificationStatus'); if (!el) return;
@@ -1291,7 +1301,7 @@ function setupSettingsUI() {
       updateNotificationStatus('ظهر الإشعار التجريبي في المتصفح.');
     }
   });
-  document.getElementById('adhanReciter')?.addEventListener('change', e => { state.settings.reciter = e.target.value; persistSettings(); playSelectedAdhan(); if (state.settings.notifications) schedulePrayerNotifications(); updateNotificationStatus('تم اختيار المؤذن وتشغيل المعاينة وإعادة جدولة الإشعارات.'); });
+  document.getElementById('adhanReciter')?.addEventListener('change', e => { state.settings.reciter = e.target.value; updateSelectedAdhanReciter(); persistSettings(); playSelectedAdhan(); if (state.settings.notifications) schedulePrayerNotifications(); updateNotificationStatus('تم اختيار المؤذن وتشغيل المعاينة وإعادة جدولة الإشعارات.'); });
   document.getElementById('previewAdhan')?.addEventListener('click', playSelectedAdhan);
   document.getElementById('vibrationEnabled')?.addEventListener('change', e => { state.settings.vibration = e.target.checked; persistSettings(); });
   document.getElementById('soundEnabled')?.addEventListener('change', e => { state.settings.sound = e.target.checked; persistSettings(); });
