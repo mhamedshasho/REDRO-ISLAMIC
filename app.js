@@ -872,29 +872,48 @@ function updateDailyProgress() {
 }
 
 // ==================== Location ====================
-function getLocation() {
-  if (!navigator.geolocation) {
-    alert('المتصفح لا يدعم تحديد الموقع');
-    return;
+function nativeGeolocation() { return window.Capacitor?.Plugins?.Geolocation || null; }
+async function applyLocationCoordinates(latitude, longitude) {
+  state.location.lat = latitude;
+  state.location.lng = longitude;
+  try {
+    const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=ar`);
+    const data = await res.json();
+    state.location.name = `${data.city || data.locality || ''}, ${data.countryName || ''}`.trim() || 'موقعك الحالي';
+  } catch {
+    state.location.name = 'موقعك الحالي';
   }
-  navigator.geolocation.getCurrentPosition(async pos => {
-    state.location.lat = pos.coords.latitude;
-    state.location.lng = pos.coords.longitude;
-    // Reverse geocode approx
-    try {
-      const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${state.location.lat}&longitude=${state.location.lng}&localityLanguage=ar`);
-      const data = await res.json();
-      state.location.name = `${data.city || data.locality || ''}, ${data.countryName || ''}`.trim() || 'موقعك الحالي';
-    } catch {
-      state.location.name = 'موقعك الحالي';
+  $('#locationName').textContent = state.location.name;
+  localStorage.setItem('redro_location', JSON.stringify(state.location));
+  await fetchPrayerTimes();
+  if (state.currentSection === 'qibla') initQibla();
+}
+async function getLocation() {
+  const native = nativeGeolocation();
+  try {
+    if (native) {
+      let permissions = await native.checkPermissions();
+      if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
+        permissions = await native.requestPermissions();
+      }
+      if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
+        alert('لم يتم السماح بالوصول إلى الموقع. فعّل إذن الموقع من إعدادات التطبيق.');
+        return;
+      }
+      const position = await native.getCurrentPosition({ enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 });
+      await applyLocationCoordinates(position.coords.latitude, position.coords.longitude);
+      return;
     }
-    $('#locationName').textContent = state.location.name;
-    localStorage.setItem('redro_location', JSON.stringify(state.location));
-    fetchPrayerTimes();
-    if (state.currentSection === 'qibla') initQibla();
-  }, err => {
-    alert('تعذر الحصول على الموقع. سيتم استخدام حلب افتراضياً.');
-  }, { enableHighAccuracy: true, timeout: 10000 });
+    if (!navigator.geolocation) throw new Error('geolocation-unavailable');
+    navigator.geolocation.getCurrentPosition(
+      position => applyLocationCoordinates(position.coords.latitude, position.coords.longitude),
+      () => alert('تعذر الحصول على الموقع. تحقق من صلاحية الموقع وفعّل GPS، وسيتم استخدام حلب افتراضياً.'),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
+    );
+  } catch (error) {
+    console.error('Location error', error);
+    alert('تعذر الحصول على الموقع. افتح إعدادات التطبيق واسمح بالموقع ثم أعد المحاولة.');
+  }
 }
 
 // ==================== Init ====================
