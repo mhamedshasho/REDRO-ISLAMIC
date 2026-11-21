@@ -692,29 +692,33 @@ function stopAudio() {
 async function showTafsir() {
   const box = $('#tafsirBox');
   if (!box || !state.currentSurah) return;
-  if (!box.classList.contains('hidden')) {
-    box.classList.add('hidden');
-    return;
-  }
-  box.classList.remove('hidden');
-  box.innerHTML = '<p>جاري تحميل التفسير...</p>';
+  const modal = document.getElementById('tafsirModal');
+  const list = document.getElementById('tafsirFullList');
+  const search = document.getElementById('tafsirSearch');
+  const surah = SURAH_NAMES.find(s => s.number === state.currentSurah);
+  if (!modal || !list) return;
+  modal.classList.remove('hidden');
+  document.getElementById('tafsirSurahName').textContent = surah ? surah.name : '';
+  list.innerHTML = '<p class="tafsir-loading">جاري تحميل تفسير جميع الآيات...</p>';
+  if (search) search.value = '';
   try {
-    // Using Muyassar tafsir (simple)
     const res = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurah}/ar.muyassar`, { cache: 'no-store' });
     const data = await res.json();
     if (data.code === 200) {
-      let html = '<h4 style="margin-bottom:12px;">تفسير ميسر</h4>';
-      data.data.ayahs.slice(0, 10).forEach(a => { // first 10 for performance
-        html += `<p><strong>${a.numberInSurah}.</strong> ${a.text}</p>`;
-      });
-      if (data.data.ayahs.length > 10) html += '<p style="color:#64748b">... (عرض أول 10 آيات)</p>';
-      box.innerHTML = html;
+      const records = data.data.ayahs.map(a => ({ number: a.numberInSurah, text: a.text }));
+      const render = term => {
+        const q = (term || '').trim().toLowerCase();
+        const filtered = records.filter(a => !q || String(a.number).indexOf(q) >= 0 || a.text.toLowerCase().indexOf(q) >= 0);
+        list.innerHTML = filtered.length ? filtered.map(a => `<article class="tafsir-ayah"><div class="tafsir-ayah-number">آية ${a.number}</div><p>${a.text}</p></article>`).join('') : '<p class="tafsir-empty">لا توجد نتائج مطابقة.</p>';
+      };
+      render('');
+      if (search) search.oninput = () => render(search.value);
     } else {
-      box.innerHTML = '<p>تعذر تحميل التفسير حالياً. تحقق من اتصال الإنترنت ثم اضغط الزر مرة أخرى.</p>';
+      list.innerHTML = '<p>تعذر تحميل التفسير حالياً. تحقق من اتصال الإنترنت ثم اضغط الزر مرة أخرى.</p>';
     }
   } catch (error) {
     console.error('Tafsir loading error', error);
-    box.innerHTML = '<p>تعذر الاتصال بخدمة التفسير. جرّب لاحقاً.</p>';
+    list.innerHTML = '<p>تعذر الاتصال بخدمة التفسير. جرّب لاحقاً.</p>';
   }
 }
 
@@ -781,6 +785,8 @@ function updateSebhaUI() {
   $('#sebhaPhrase').textContent = p.text;
   $('#sebhaCount').textContent = state.sebha.count;
   $('#sebhaTarget').textContent = p.target;
+  const ring = $('#sebhaRing');
+  if (ring) ring.style.setProperty('--progress', `${Math.min(100, (state.sebha.count / p.target) * 100)}%`);
   $('#sebhaHadith').innerHTML = `<p>${p.hadith}</p>`;
 }
 
@@ -1230,6 +1236,8 @@ function renderPrayerNotificationToggles() {
 function openSettings() {
   const modal = document.getElementById('settingsModal'); if (!modal) return;
   modal.classList.remove('hidden');
+  const settingsSearch = document.getElementById('settingsSearch');
+  if (settingsSearch) { settingsSearch.value = ''; document.querySelectorAll('#settingsModal .settings-section').forEach(section => section.classList.remove('hidden')); }
   document.getElementById('notificationsEnabled').checked = !!state.settings.notifications;
   document.getElementById('vibrationEnabled').checked = !!state.settings.vibration;
   document.getElementById('soundEnabled').checked = !!state.settings.sound;
@@ -1285,6 +1293,13 @@ function playSelectedAdhan() { const reciter = ADHAN_RECITERS.find(r => r.id ===
 function playSebhaSound() { if (!state.settings.sound) return; try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 800; gain.gain.setValueAtTime(.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .1); osc.start(); osc.stop(ctx.currentTime + .1); } catch (_) {} }
 function setupSettingsUI() {
   document.getElementById('closeSettings')?.addEventListener('click', () => document.getElementById('settingsModal').classList.add('hidden'));
+  document.getElementById('closeTafsir')?.addEventListener('click', () => document.getElementById('tafsirModal').classList.add('hidden'));
+  document.getElementById('settingsSearch')?.addEventListener('input', e => {
+    const query = e.target.value.trim().toLowerCase();
+    document.querySelectorAll('#settingsModal .settings-section').forEach(section => {
+      section.classList.toggle('hidden', !!query && section.textContent.toLowerCase().indexOf(query) < 0);
+    });
+  });
   document.getElementById('notificationsEnabled')?.addEventListener('change', async e => { if (e.target.checked) { const ok = await requestNotificationPermission(); state.settings.notifications = ok; e.target.checked = ok; if (ok) await schedulePrayerNotifications(); else updateNotificationStatus('لم يتم منح صلاحية الإشعارات.'); } else { state.settings.notifications = false; const plugin = nativeLocalNotifications(); if (plugin) await plugin.cancelAll(); updateNotificationStatus('الإشعارات متوقفة.'); } persistSettings(); });
   document.getElementById('requestNotifications')?.addEventListener('click', async () => { const ok = await requestNotificationPermission(); state.settings.notifications = ok; document.getElementById('notificationsEnabled').checked = ok; if (ok) await schedulePrayerNotifications(); else updateNotificationStatus('لم يتم منح صلاحية الإشعارات.'); persistSettings(); });
   document.getElementById('testNotification')?.addEventListener('click', async () => {
