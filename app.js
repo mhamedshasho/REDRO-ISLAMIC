@@ -339,6 +339,7 @@ async function fetchPrayerTimes() {
     };
     renderPrayerTimes();
     startCountdown();
+    if (state.settings?.notifications) schedulePrayerNotifications();
   }
 }
 
@@ -440,6 +441,29 @@ function showSection(id) {
 }
 
 // ==================== Quran ====================
+const QURAN_RECITERS = [
+  { id: 'ar.alafasy', name: 'مشاري راشد العفاسي' },
+  { id: 'ar.abdulbasitmurattal', name: 'عبد الباسط عبد الصمد' },
+  { id: 'ar.husary', name: 'محمود خليل الحصري' },
+  { id: 'ar.minshawi', name: 'محمد صديق المنشاوي' },
+  { id: 'ar.sudais', name: 'عبد الرحمن السديس' }
+];
+function setupQuranReciter() {
+  const select = document.getElementById('quranReciter');
+  if (!select) return;
+  select.innerHTML = QURAN_RECITERS.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+  select.value = state.settings.quranReciter || 'ar.alafasy';
+  select.onchange = () => {
+    state.settings.quranReciter = select.value;
+    persistSettings();
+    if (state.audio) { stopAudio(); updateAudioStatus('تم اختيار القارئ الجديد. اضغط استماع للبدء.'); }
+  };
+}
+function updateAudioStatus(message) {
+  const status = document.getElementById('audioStatus');
+  if (status) { status.classList.remove('hidden'); status.textContent = message; }
+}
+
 function renderSurahList(filter = '') {
   const list = $('#surahList');
   list.innerHTML = '';
@@ -512,6 +536,15 @@ function renderAyahs() {
     </div>`;
   });
   container.innerHTML = html;
+  container.querySelectorAll('.ayah').forEach((element, index) => {
+    element.onclick = () => {
+      stopAudio();
+      currentAudioIndex = index;
+      $('#playAudio').classList.add('hidden');
+      $('#stopAudio').classList.remove('hidden');
+      playNextAyah();
+    };
+  });
 }
 
 function updateFavButton() {
@@ -547,8 +580,8 @@ function playNextAyah() {
     return;
   }
   const ayah = state.currentAyahs[currentAudioIndex];
-  // Global ayah number for CDN (alafasy)
-  const audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${ayah.number}.mp3`;
+  const reader = (state.settings && state.settings.quranReciter) || 'ar.alafasy';
+  const audioUrl = `https://cdn.islamic.network/quran/audio/128/${reader}/${ayah.number}.mp3`;
   state.audio = new Audio(audioUrl);
   $('#audioStatus').textContent = `جاري تشغيل الآية ${ayah.numberInSurah}...`;
   state.audio.play().catch(() => {
@@ -886,6 +919,7 @@ async function applyLocationCoordinates(latitude, longitude) {
   $('#locationName').textContent = state.location.name;
   localStorage.setItem('redro_location', JSON.stringify(state.location));
   await fetchPrayerTimes();
+  if (state.settings?.notifications) await schedulePrayerNotifications();
   if (state.currentSection === 'qibla') initQibla();
 }
 async function getLocation() {
@@ -925,6 +959,7 @@ function init() {
   renderAzkarCategories();
   renderDeeds();
   renderKunuzList();
+  setupQuranReciter();
   updateSebhaUI();
 
   // Events
@@ -1073,6 +1108,7 @@ const ADHAN_RECITERS = [
   { id: 'dubai', name: 'مشاري راشد - أذان دبي', url: 'https://cdn.aladhan.com/audio/adhans/a4.mp3' }
 ];
 const PRAYER_LABELS = { Fajr: 'الفجر', Dhuhr: 'الظهر', Asr: 'العصر', Maghrib: 'المغرب', Isha: 'العشاء' };
+const PRAYER_CHANNEL_ID = 'prayer-times-v2';
 const DEFAULT_PRAYER_NOTIFICATIONS = { Fajr: true, Dhuhr: true, Asr: true, Maghrib: true, Isha: true };
 state.settings = {
   theme: localStorage.getItem('redro_theme') || 'dark',
@@ -1080,6 +1116,7 @@ state.settings = {
   vibration: localStorage.getItem('redro_vibration') !== 'false',
   notifications: localStorage.getItem('redro_notifications') === 'true',
   reciter: localStorage.getItem('redro_reciter') || 'mishary',
+  quranReciter: localStorage.getItem('redro_quran_reciter') || 'ar.alafasy',
   prayerNotifications: { ...DEFAULT_PRAYER_NOTIFICATIONS }
 };
 try { state.settings = { ...state.settings, ...JSON.parse(localStorage.getItem('redro_settings') || '{}') }; } catch (_) {}
@@ -1092,6 +1129,7 @@ function persistSettings() {
   localStorage.setItem('redro_vibration', String(state.settings.vibration));
   localStorage.setItem('redro_notifications', String(state.settings.notifications));
   localStorage.setItem('redro_reciter', state.settings.reciter);
+  localStorage.setItem('redro_quran_reciter', state.settings.quranReciter || 'ar.alafasy');
 }
 function applyTheme() { document.documentElement.setAttribute('data-theme', state.settings.theme); persistSettings(); }
 function isNativeAndroid() { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
@@ -1130,7 +1168,9 @@ async function schedulePrayerNotifications() {
   const plugin = nativeLocalNotifications();
   if (!plugin || !state.prayerTimes || !state.settings.notifications) { updateNotificationStatus('الإشعارات مفعلة. افتح التطبيق دورياً على الويب، أو استخدم APK للجدولة بالخلفية.'); return; }
   try {
-    await plugin.createChannel({ id: 'prayer-times', name: 'مواقيت الصلاة', description: 'إشعارات الأذان ومواقيت الصلاة', importance: 5, sound: 'adhan', vibration: true, lights: true });
+    // Android يحفظ إعدادات القناة القديمة؛ إنشاء قناة v2 يفعّل صوت الأذان المضمّن.
+    if (plugin.deleteChannel) { try { await plugin.deleteChannel({ id: 'prayer-times' }); } catch (_) {} }
+    await plugin.createChannel({ id: PRAYER_CHANNEL_ID, name: 'مواقيت الصلاة والأذان', description: 'إشعارات الأذان ومواقيت الصلاة', importance: 5, sound: 'adhan', vibration: true, lights: true });
     await plugin.cancel({ notifications: Array.from({ length: 35 }, (_, i) => ({ id: 2100 + Math.floor(i / 5) * 10 + (i % 5) })) });
     const now = new Date(); const notifications = [];
     for (let day = 0; day < 7; day++) {
@@ -1139,7 +1179,7 @@ async function schedulePrayerNotifications() {
       if (day > 0) {
         try { const ds = `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`; const res = await fetch(`https://api.aladhan.com/v1/timings/${ds}?latitude=${state.location.lat}&longitude=${state.location.lng}&method=4`); const json = await res.json(); if (json.code === 200) times = json.data.timings; } catch (_) {}
       }
-      Object.entries(PRAYER_LABELS).forEach(([key, label], index) => { if (state.settings.prayerNotifications[key] && times[key]) { const at = prayerDate(date, times[key]); if (at > new Date()) notifications.push({ id: 2100 + day * 10 + index, title: `حان الآن موعد صلاة ${label}`, body: `حي على الصلاة — ${state.location.name}`, schedule: { at, allowWhileIdle: true }, channelId: 'prayer-times', sound: 'adhan', extra: { prayer: key } }); } });
+      Object.entries(PRAYER_LABELS).forEach(([key, label], index) => { if (state.settings.prayerNotifications[key] && times[key]) { const at = prayerDate(date, times[key]); if (at > new Date()) notifications.push({ id: 2100 + day * 10 + index, title: `حان الآن موعد صلاة ${label}`, body: `حي على الصلاة — ${state.location.name}`, schedule: { at, allowWhileIdle: true }, channelId: PRAYER_CHANNEL_ID, sound: 'adhan', extra: { prayer: key, reciter: state.settings.reciter } }); } });
     }
     await plugin.schedule({ notifications });
     updateNotificationStatus(`تمت جدولة ${notifications.length} إشعاراً للأيام السبعة القادمة.`);
@@ -1156,22 +1196,25 @@ function setupSettingsUI() {
     if (!ok) { updateNotificationStatus('اسمح بالإشعارات أولاً ثم أعد المحاولة.'); return; }
     const plugin = nativeLocalNotifications();
     if (plugin) {
-      await plugin.createChannel({ id: 'prayer-times', name: 'مواقيت الصلاة', importance: 5, sound: 'adhan', vibration: true });
+      await plugin.createChannel({ id: PRAYER_CHANNEL_ID, name: 'مواقيت الصلاة والأذان', importance: 5, sound: 'adhan', vibration: true });
       const at = new Date(Date.now() + 60 * 1000);
-      await plugin.schedule({ notifications: [{ id: 2999, title: 'إشعار تجريبي — Redro Islamic', body: 'إذا ظهر هذا التنبيه فالإشعارات وصوت الأذان يعملان.', schedule: { at, allowWhileIdle: true }, channelId: 'prayer-times', sound: 'adhan' }] });
+      await plugin.schedule({ notifications: [{ id: 2999, title: 'إشعار تجريبي — Redro Islamic', body: 'إذا ظهر هذا التنبيه فالإشعارات وصوت الأذان يعملان.', schedule: { at, allowWhileIdle: true }, channelId: PRAYER_CHANNEL_ID, sound: 'adhan' }] });
       updateNotificationStatus('سيصل الإشعار التجريبي خلال دقيقة. لا تغلق صلاحية الإشعارات من النظام.');
     } else if ('Notification' in window) {
       new Notification('إشعار تجريبي — Redro Islamic', { body: 'الإشعارات تعمل في المتصفح.' });
       updateNotificationStatus('ظهر الإشعار التجريبي في المتصفح.');
     }
   });
-  document.getElementById('adhanReciter')?.addEventListener('change', e => { state.settings.reciter = e.target.value; persistSettings(); });
+  document.getElementById('adhanReciter')?.addEventListener('change', e => { state.settings.reciter = e.target.value; persistSettings(); playSelectedAdhan(); if (state.settings.notifications) schedulePrayerNotifications(); updateNotificationStatus('تم اختيار المؤذن وتشغيل المعاينة وإعادة جدولة الإشعارات.'); });
   document.getElementById('previewAdhan')?.addEventListener('click', playSelectedAdhan);
   document.getElementById('vibrationEnabled')?.addEventListener('change', e => { state.settings.vibration = e.target.checked; persistSettings(); });
   document.getElementById('soundEnabled')?.addEventListener('change', e => { state.settings.sound = e.target.checked; persistSettings(); });
 }
 setupSettingsUI();
 applyTheme();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.settings?.notifications && state.prayerTimes) schedulePrayerNotifications();
+});
 
 // ==================== Seasonal Themes (Ramadan, Eids...) ====================
 function applySeasonalTheme(hijri) {

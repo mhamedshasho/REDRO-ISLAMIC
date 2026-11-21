@@ -383,6 +383,8 @@ body {
 .ayah-view { }
 .ayah-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
 .ayah-controls { display: flex; gap: 8px; margin-bottom: 16px; }
+.ayah-controls .quran-reciter { flex: 1 1 100%; width: 100%; margin: 0 0 4px; }
+.ayah { cursor: pointer; }
 .ctrl-btn {
   background: var(--primary);
   color: white;

@@ -131,6 +131,7 @@
             <button id="favSurahBtn" class="icon-btn-small" title="إضافة للمفضلة"><i class="far fa-star"></i></button>
           </div>
           <div class="ayah-controls">
+            <select id="quranReciter" class="settings-select quran-reciter" aria-label="اختيار قارئ القرآن"></select>
             <button id="playAudio" class="ctrl-btn"><i class="fas fa-play"></i> استماع</button>
             <button id="toggleTranslation" class="ctrl-btn"><i class="fas fa-language"></i> ترجمة</button>
             <button id="showTafsir" class="ctrl-btn"><i class="fas fa-book"></i> تفسير</button>
@@ -403,7 +404,7 @@
         <select id="adhanReciter" class="settings-select"></select>
         <button class="secondary-btn settings-action" id="previewAdhan"><i class="fas fa-play"></i> معاينة الأذان</button>
         <audio id="adhanAudio" preload="none"></audio>
-        <p class="setting-hint">الأصوات مأخوذة من روابط الأذان المنشورة في AlAdhan. سيستخدم APK صوت الأذان المضمّن للإشعار.</p>
+        <p class="setting-hint">عند اختيار المؤذن يبدأ تشغيل المعاينة تلقائيًا. سيستخدم إشعار Android صوت الأذان المضمّن لضمان العمل دون إنترنت، وتُحفظ اختياراتك محليًا.</p>
       </div>
       <div class="settings-section">
         <h4><i class="fas fa-mobile-screen-button"></i> سلوك التطبيق</h4>
