@@ -1,0 +1,21 @@
+{
+  "name": "redro-islamic",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Redro Islamic Android app",
+  "scripts": {
+    "build": "rm -rf www && mkdir -p www && cp index.html app.js styles.css manifest.json sw.js www/",
+    "android:add": "cap add android",
+    "android:sync": "cap sync android",
+    "android:open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/local-notifications": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "typescript": "^7.0.2"
+  }
+}

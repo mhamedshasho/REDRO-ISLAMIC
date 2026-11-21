@@ -78,6 +78,26 @@ body {
 
 .hidden { display: none !important; }
 
+/* Prayer notifications and settings */
+.settings-modal { max-height: 88vh; overflow-y: auto; }
+.settings-body { display: grid; gap: 18px; }
+.settings-section { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 16px; }
+.settings-section h4 { margin: 0 0 12px; color: var(--primary, #f87171); display: flex; gap: 8px; align-items: center; }
+.setting-row, .mini-toggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.07); cursor: pointer; }
+.mini-toggle { flex: 1; min-width: 72px; border: 0; padding: 8px 10px; background: rgba(255,255,255,.035); border-radius: 10px; }
+.prayer-toggles { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.toggle-input, .mini-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.toggle-ui { position: relative; width: 42px; height: 24px; border-radius: 99px; background: #475569; flex: 0 0 auto; transition: .2s; }
+.toggle-ui::after { content: ''; position: absolute; top: 3px; right: 21px; width: 18px; height: 18px; border-radius: 50%; background: white; transition: .2s; }
+.toggle-input:checked + .toggle-ui, .mini-toggle input:checked + .toggle-ui { background: #dc2626; }
+.toggle-input:checked + .toggle-ui::after, .mini-toggle input:checked + .toggle-ui::after { right: 3px; }
+.settings-select { width: 100%; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 12px; background: #1e293b; color: inherit; font-family: inherit; margin: 6px 0 10px; }
+.field-label { display: block; font-size: .85rem; color: #94a3b8; }
+.settings-action { width: 100%; margin-top: 8px; }
+.secondary-btn { border: 1px solid rgba(255,255,255,.16); background: transparent; color: inherit; border-radius: 10px; padding: 10px 14px; font-family: inherit; cursor: pointer; }
+.setting-hint { color: #94a3b8; font-size: .78rem; line-height: 1.6; margin: 10px 0 0; }
+[data-theme="light"] .settings-section { background: rgba(15,23,42,.04); border-color: rgba(15,23,42,.1); }
+
 /* Header */
 .top-header {
   background: var(--header-bg);

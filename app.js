@@ -17,6 +17,7 @@ let state = {
   deeds: [],
   azkarProgress: {},
   favorites: [],
+  settings: null,
   showTranslation: false,
   currentSurah: null,
   currentAyahs: [],
@@ -256,6 +257,7 @@ function saveState() {
   localStorage.setItem('redro_azkar', JSON.stringify(state.azkarProgress));
   localStorage.setItem('redro_favorites', JSON.stringify(state.favorites));
   localStorage.setItem('redro_fasting', JSON.stringify(state.fastingDays));
+  localStorage.setItem('redro_settings', JSON.stringify(state.settings || {}));
 }
 
 function loadState() {
@@ -275,6 +277,8 @@ function loadState() {
 
     const fasting = localStorage.getItem('redro_fasting');
     if (fasting) state.fastingDays = JSON.parse(fasting);
+    const savedSettings = localStorage.getItem('redro_settings');
+    if (savedSettings) state.settings = { ...(state.settings || {}), ...JSON.parse(savedSettings) };
   } catch (e) {
     state.deeds = DEEDS_LIST.map(() => false);
   }
@@ -325,6 +329,7 @@ async function fetchPrayerTimes() {
       applySeasonalTheme(hijri);
       renderPrayerTimes();
       startCountdown();
+      if (state.settings?.notifications) schedulePrayerNotifications();
     }
   } catch (e) {
     console.error('Prayer times error', e);
@@ -884,6 +889,7 @@ function getLocation() {
       state.location.name = 'موقعك الحالي';
     }
     $('#locationName').textContent = state.location.name;
+    localStorage.setItem('redro_location', JSON.stringify(state.location));
     fetchPrayerTimes();
     if (state.currentSection === 'qibla') initQibla();
   }, err => {
@@ -893,6 +899,8 @@ function getLocation() {
 
 // ==================== Init ====================
 function init() {
+  const savedLocation = localStorage.getItem('redro_location');
+  if (savedLocation) { try { state.location = { ...state.location, ...JSON.parse(savedLocation) }; } catch (_) {} }
   loadState();
   renderSurahList();
   renderAzkarCategories();
@@ -985,6 +993,10 @@ function init() {
     $('#moreMenu').classList.add('hidden');
     $('#aboutModal').classList.remove('hidden');
   };
+  $('#settingsBtn').onclick = () => {
+    $('#moreMenu').classList.add('hidden');
+    openSettings();
+  };
 
   $$('.more-item[data-section]').forEach(btn => {
     btn.onclick = () => {
@@ -1032,53 +1044,100 @@ function initRamadan() {
 
 document.addEventListener('DOMContentLoaded', init);
 
-// ==================== Settings & Theme & Sound ====================
+// ==================== Settings, Adhan & Notifications ====================
+const ADHAN_RECITERS = [
+  { id: 'mishary', name: 'مشاري راشد العفاسي', url: 'https://cdn.aladhan.com/audio/adhans/a9.mp3' },
+  { id: 'ahmad', name: 'أحمد النفيس', url: 'https://cdn.aladhan.com/audio/adhans/a1.mp3' },
+  { id: 'mustafa', name: 'حافظ مصطفى أوزجان', url: 'https://cdn.aladhan.com/audio/adhans/a2.mp3' },
+  { id: 'mansour', name: 'منصور الزهراني', url: 'https://cdn.aladhan.com/audio/adhans/a11-mansour-al-zahrani.mp3' },
+  { id: 'dubai', name: 'مشاري راشد - أذان دبي', url: 'https://cdn.aladhan.com/audio/adhans/a4.mp3' }
+];
+const PRAYER_LABELS = { Fajr: 'الفجر', Dhuhr: 'الظهر', Asr: 'العصر', Maghrib: 'المغرب', Isha: 'العشاء' };
+const DEFAULT_PRAYER_NOTIFICATIONS = { Fajr: true, Dhuhr: true, Asr: true, Maghrib: true, Isha: true };
 state.settings = {
   theme: localStorage.getItem('redro_theme') || 'dark',
   sound: localStorage.getItem('redro_sound') !== 'false',
-  vibration: localStorage.getItem('redro_vibration') !== 'false'
+  vibration: localStorage.getItem('redro_vibration') !== 'false',
+  notifications: localStorage.getItem('redro_notifications') === 'true',
+  reciter: localStorage.getItem('redro_reciter') || 'mishary',
+  prayerNotifications: { ...DEFAULT_PRAYER_NOTIFICATIONS }
 };
+try { state.settings = { ...state.settings, ...JSON.parse(localStorage.getItem('redro_settings') || '{}') }; } catch (_) {}
+state.settings.prayerNotifications = { ...DEFAULT_PRAYER_NOTIFICATIONS, ...(state.settings.prayerNotifications || {}) };
 
-function applyTheme() {
-  document.documentElement.setAttribute('data-theme', state.settings.theme);
+function persistSettings() {
+  localStorage.setItem('redro_settings', JSON.stringify(state.settings));
   localStorage.setItem('redro_theme', state.settings.theme);
+  localStorage.setItem('redro_sound', String(state.settings.sound));
+  localStorage.setItem('redro_vibration', String(state.settings.vibration));
+  localStorage.setItem('redro_notifications', String(state.settings.notifications));
+  localStorage.setItem('redro_reciter', state.settings.reciter);
 }
-
-function playSebhaSound() {
-  if (!state.settings.sound) return;
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 800;
-    osc.type = 'sine';
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.1);
-  } catch(e) {}
+function applyTheme() { document.documentElement.setAttribute('data-theme', state.settings.theme); persistSettings(); }
+function isNativeAndroid() { return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }
+function nativeLocalNotifications() { return window.Capacitor?.Plugins?.LocalNotifications || null; }
+function renderPrayerNotificationToggles() {
+  const box = document.getElementById('prayerNotificationToggles'); if (!box) return;
+  box.innerHTML = Object.entries(PRAYER_LABELS).map(([key, label]) => `<label class="mini-toggle"><span>${label}</span><input type="checkbox" data-prayer="${key}" ${state.settings.prayerNotifications[key] ? 'checked' : ''}><span class="toggle-ui"></span></label>`).join('');
+  box.querySelectorAll('input[data-prayer]').forEach(input => input.onchange = () => { state.settings.prayerNotifications[input.dataset.prayer] = input.checked; persistSettings(); if (state.settings.notifications) schedulePrayerNotifications(); });
 }
-
-// Override sebhaTap to include sound + vibration
-const _oldSebhaTap = sebhaTap;
-sebhaTap = function() {
-  state.sebha.count++;
-  const p = SEBHA_PHRASES[state.sebha.index];
-  playSebhaSound();
-  if (state.settings.vibration && navigator.vibrate) {
-    navigator.vibrate(state.sebha.count >= p.target ? [40, 20, 40] : 15);
+function openSettings() {
+  const modal = document.getElementById('settingsModal'); if (!modal) return;
+  modal.classList.remove('hidden');
+  document.getElementById('notificationsEnabled').checked = !!state.settings.notifications;
+  document.getElementById('vibrationEnabled').checked = !!state.settings.vibration;
+  document.getElementById('soundEnabled').checked = !!state.settings.sound;
+  const select = document.getElementById('adhanReciter');
+  select.innerHTML = ADHAN_RECITERS.map(r => `<option value="${r.id}">${r.name}</option>`).join(''); select.value = state.settings.reciter;
+  renderPrayerNotificationToggles(); updateNotificationStatus();
+}
+function updateNotificationStatus(message) {
+  const el = document.getElementById('notificationStatus'); if (!el) return;
+  el.textContent = message || (isNativeAndroid() ? 'سيتم جدولة الإشعارات محلياً على الهاتف.' : 'في نسخة الويب يلزم إبقاء الصفحة مفتوحة؛ APK يدعم الجدولة بالخلفية.');
+}
+async function requestNotificationPermission() {
+  const plugin = nativeLocalNotifications();
+  if (plugin) {
+    let permission = await plugin.checkPermissions();
+    if (permission.display !== 'granted') permission = await plugin.requestPermissions();
+    return permission.display === 'granted';
   }
-  updateSebhaUI();
-  saveState();
-};
-
-// Apply theme on load
-if (state.settings) applyTheme(); else { document.documentElement.setAttribute("data-theme", localStorage.getItem("redro_theme") || "dark"); }
-
-// Simple settings from about or more - can expand later
-console.log('Redro Islamic PWA ready | Developer: mhamedshasho.redrostudios');
+  if ('Notification' in window) { const p = await Notification.requestPermission(); return p === 'granted'; }
+  return false;
+}
+function prayerDate(date, time) { const [h, m] = time.split(':').map(Number); const d = new Date(date); d.setHours(h, m, 0, 0); return d; }
+async function schedulePrayerNotifications() {
+  const plugin = nativeLocalNotifications();
+  if (!plugin || !state.prayerTimes || !state.settings.notifications) { updateNotificationStatus('الإشعارات مفعلة. افتح التطبيق دورياً على الويب، أو استخدم APK للجدولة بالخلفية.'); return; }
+  try {
+    await plugin.createChannel({ id: 'prayer-times', name: 'مواقيت الصلاة', description: 'إشعارات الأذان ومواقيت الصلاة', importance: 5, sound: 'adhan', vibration: true, lights: true });
+    await plugin.cancel({ notifications: Array.from({ length: 35 }, (_, i) => ({ id: 2100 + Math.floor(i / 5) * 10 + (i % 5) })) });
+    const now = new Date(); const notifications = [];
+    for (let day = 0; day < 7; day++) {
+      const date = new Date(now); date.setDate(now.getDate() + day);
+      let times = state.prayerTimes;
+      if (day > 0) {
+        try { const ds = `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}-${date.getFullYear()}`; const res = await fetch(`https://api.aladhan.com/v1/timings/${ds}?latitude=${state.location.lat}&longitude=${state.location.lng}&method=4`); const json = await res.json(); if (json.code === 200) times = json.data.timings; } catch (_) {}
+      }
+      Object.entries(PRAYER_LABELS).forEach(([key, label], index) => { if (state.settings.prayerNotifications[key] && times[key]) { const at = prayerDate(date, times[key]); if (at > new Date()) notifications.push({ id: 2100 + day * 10 + index, title: `حان الآن موعد صلاة ${label}`, body: `حي على الصلاة — ${state.location.name}`, schedule: { at, allowWhileIdle: true }, channelId: 'prayer-times', sound: 'adhan', extra: { prayer: key } }); } });
+    }
+    await plugin.schedule({ notifications });
+    updateNotificationStatus(`تمت جدولة ${notifications.length} إشعاراً للأيام السبعة القادمة.`);
+  } catch (error) { console.error('Notification schedule error', error); updateNotificationStatus('تعذر الجدولة. تحقق من صلاحية الإشعارات والمنبهات الدقيقة من إعدادات Android.'); }
+}
+function playSelectedAdhan() { const reciter = ADHAN_RECITERS.find(r => r.id === state.settings.reciter) || ADHAN_RECITERS[0]; const audio = document.getElementById('adhanAudio'); audio.src = reciter.url; audio.play().catch(() => updateNotificationStatus('اضغط معاينة الأذان مرة أخرى للسماح بتشغيل الصوت.')); }
+function playSebhaSound() { if (!state.settings.sound) return; try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 800; gain.gain.setValueAtTime(.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .1); osc.start(); osc.stop(ctx.currentTime + .1); } catch (_) {} }
+function setupSettingsUI() {
+  document.getElementById('closeSettings')?.addEventListener('click', () => document.getElementById('settingsModal').classList.add('hidden'));
+  document.getElementById('notificationsEnabled')?.addEventListener('change', async e => { if (e.target.checked) { const ok = await requestNotificationPermission(); state.settings.notifications = ok; e.target.checked = ok; if (ok) await schedulePrayerNotifications(); else updateNotificationStatus('لم يتم منح صلاحية الإشعارات.'); } else { state.settings.notifications = false; const plugin = nativeLocalNotifications(); if (plugin) await plugin.cancelAll(); updateNotificationStatus('الإشعارات متوقفة.'); } persistSettings(); });
+  document.getElementById('requestNotifications')?.addEventListener('click', async () => { const ok = await requestNotificationPermission(); state.settings.notifications = ok; document.getElementById('notificationsEnabled').checked = ok; if (ok) await schedulePrayerNotifications(); else updateNotificationStatus('لم يتم منح صلاحية الإشعارات.'); persistSettings(); });
+  document.getElementById('adhanReciter')?.addEventListener('change', e => { state.settings.reciter = e.target.value; persistSettings(); });
+  document.getElementById('previewAdhan')?.addEventListener('click', playSelectedAdhan);
+  document.getElementById('vibrationEnabled')?.addEventListener('change', e => { state.settings.vibration = e.target.checked; persistSettings(); });
+  document.getElementById('soundEnabled')?.addEventListener('change', e => { state.settings.sound = e.target.checked; persistSettings(); });
+}
+setupSettingsUI();
+applyTheme();
 
 // ==================== Seasonal Themes (Ramadan, Eids...) ====================
 function applySeasonalTheme(hijri) {

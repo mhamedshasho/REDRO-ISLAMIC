@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Redro Islamic</string>
+    <string name="title_activity_main">Redro Islamic</string>
+    <string name="package_name">com.redro.islamic</string>
+    <string name="custom_url_scheme">com.redro.islamic</string>
+</resources>
