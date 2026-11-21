@@ -1131,6 +1131,20 @@ function setupSettingsUI() {
   document.getElementById('closeSettings')?.addEventListener('click', () => document.getElementById('settingsModal').classList.add('hidden'));
   document.getElementById('notificationsEnabled')?.addEventListener('change', async e => { if (e.target.checked) { const ok = await requestNotificationPermission(); state.settings.notifications = ok; e.target.checked = ok; if (ok) await schedulePrayerNotifications(); else updateNotificationStatus('لم يتم منح صلاحية الإشعارات.'); } else { state.settings.notifications = false; const plugin = nativeLocalNotifications(); if (plugin) await plugin.cancelAll(); updateNotificationStatus('الإشعارات متوقفة.'); } persistSettings(); });
   document.getElementById('requestNotifications')?.addEventListener('click', async () => { const ok = await requestNotificationPermission(); state.settings.notifications = ok; document.getElementById('notificationsEnabled').checked = ok; if (ok) await schedulePrayerNotifications(); else updateNotificationStatus('لم يتم منح صلاحية الإشعارات.'); persistSettings(); });
+  document.getElementById('testNotification')?.addEventListener('click', async () => {
+    const ok = await requestNotificationPermission();
+    if (!ok) { updateNotificationStatus('اسمح بالإشعارات أولاً ثم أعد المحاولة.'); return; }
+    const plugin = nativeLocalNotifications();
+    if (plugin) {
+      await plugin.createChannel({ id: 'prayer-times', name: 'مواقيت الصلاة', importance: 5, sound: 'adhan', vibration: true });
+      const at = new Date(Date.now() + 60 * 1000);
+      await plugin.schedule({ notifications: [{ id: 2999, title: 'إشعار تجريبي — Redro Islamic', body: 'إذا ظهر هذا التنبيه فالإشعارات وصوت الأذان يعملان.', schedule: { at, allowWhileIdle: true }, channelId: 'prayer-times', sound: 'adhan' }] });
+      updateNotificationStatus('سيصل الإشعار التجريبي خلال دقيقة. لا تغلق صلاحية الإشعارات من النظام.');
+    } else if ('Notification' in window) {
+      new Notification('إشعار تجريبي — Redro Islamic', { body: 'الإشعارات تعمل في المتصفح.' });
+      updateNotificationStatus('ظهر الإشعار التجريبي في المتصفح.');
+    }
+  });
   document.getElementById('adhanReciter')?.addEventListener('change', e => { state.settings.reciter = e.target.value; persistSettings(); });
   document.getElementById('previewAdhan')?.addEventListener('click', playSelectedAdhan);
   document.getElementById('vibrationEnabled')?.addEventListener('change', e => { state.settings.vibration = e.target.checked; persistSettings(); });
