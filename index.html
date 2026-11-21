@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#dc2626">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="Redro Islamic - تطبيق إسلامي شامل من Redro Studios">
+  <link rel="manifest" href="manifest.json">
+  <title>Redro Islamic</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div id="loading" class="loading-overlay">
+    <div class="spinner"></div>
+    <p>جاري التحميل...</p>
+  </div>
+
+  <!-- App Container -->
+  <div id="app" class="app hidden">
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="header-left">
+        <button class="icon-btn" id="profileBtn" title="عن التطبيق"><i class="fas fa-user-circle"></i></button>
+      </div>
+      <div class="header-center">
+        <h1 class="app-title"><i class="fas fa-mosque"></i> Redro Islamic</h1>
+      </div>
+      <div class="header-right" style="display:flex;gap:6px;align-items:center;">
+        <button class="icon-btn" id="themeToggle" title="الوضع الداكن/الفاتح"><i class="fas fa-moon"></i></button>
+        <button class="icon-btn" id="menuBtn" title="المزيد"><i class="fas fa-bars"></i></button>
+      </div>
+    </header>
+
+    <!-- Main Content Areas -->
+    <main class="main-content">
+      <!-- HOME SECTION -->
+      <section id="home" class="section active">
+        <div class="prayer-hero">
+          <div class="location-row">
+            <i class="fas fa-map-marker-alt"></i>
+            <span id="locationName">حلب، سوريا</span>
+            <button class="loc-btn" id="changeLocBtn"><i class="fas fa-sync-alt"></i></button>
+          </div>
+          <div class="next-prayer">
+            <div class="next-label">الصلاة القادمة</div>
+            <div class="next-name" id="nextPrayerName">الفجر</div>
+            <div class="countdown" id="countdown">--:--:--</div>
+          </div>
+          <div class="date-row">
+            <span id="gregorianDate"></span>
+            <span class="separator">|</span>
+            <span id="hijriDate"></span>
+          </div>
+        </div>
+
+        <div class="prayer-times-grid" id="prayerTimesGrid">
+          <!-- Filled by JS -->
+        </div>
+
+        <div class="quick-actions">
+          <h3 class="section-title">الوصول السريع</h3>
+          <div class="actions-grid">
+            <button class="action-card" data-section="quran">
+              <div class="action-icon quran"><i class="fas fa-book-quran"></i></div>
+              <span>المصحف</span>
+            </button>
+            <button class="action-card" data-section="azkar">
+              <div class="action-icon azkar"><i class="fas fa-hands-praying"></i></div>
+              <span>الأذكار</span>
+            </button>
+            <button class="action-card" data-section="sebha">
+              <div class="action-icon sebha"><i class="fas fa-circle-notch"></i></div>
+              <span>السبحة</span>
+            </button>
+            <button class="action-card" data-section="qibla">
+              <div class="action-icon qibla"><i class="fas fa-compass"></i></div>
+              <span>القبلة</span>
+            </button>
+            <button class="action-card" data-section="zakat">
+              <div class="action-icon zakat"><i class="fas fa-calculator"></i></div>
+              <span>حاسبة الزكاة</span>
+            </button>
+            <button class="action-card" data-section="deeds">
+              <div class="action-icon deeds"><i class="fas fa-list-check"></i></div>
+              <span>عمل اليوم</span>
+            </button>
+            <button class="action-card" data-section="ramadan">
+              <div class="action-icon ramadan"><i class="fas fa-moon"></i></div>
+              <span>رمضان</span>
+            </button>
+            <button class="action-card" data-section="kunuz">
+              <div class="action-icon kunuz"><i class="fas fa-gem"></i></div>
+              <span>كنوز</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="daily-progress card">
+          <h3>تقدم اليوم</h3>
+          <div class="progress-bar">
+            <div class="progress-fill" id="dailyProgress" style="width: 0%"></div>
+          </div>
+          <p id="progressText">0 / 10 مهام مكتملة</p>
+        </div>
+      </section>
+
+      <!-- QURAN SECTION -->
+      <section id="quran" class="section">
+        <div class="section-header">
+          <button class="back-btn" data-back="home"><i class="fas fa-arrow-right"></i></button>
+          <h2>المصحف الشريف</h2>
+        </div>
+        <div class="surah-search">
+          <input type="text" id="surahSearch" placeholder="ابحث عن سورة...">
+        </div>
+        <div class="surah-list" id="surahList">
+          <!-- Filled by JS -->
+        </div>
+        <div id="ayahView" class="ayah-view hidden">
+          <div class="ayah-header">
+            <button class="back-btn" id="backToSurahs"><i class="fas fa-arrow-right"></i></button>
+            <h3 id="currentSurahName"></h3>
+            <button id="favSurahBtn" class="icon-btn-small" title="إضافة للمفضلة"><i class="far fa-star"></i></button>
+          </div>
+          <div class="ayah-controls">
+            <button id="playAudio" class="ctrl-btn"><i class="fas fa-play"></i> استماع</button>
+            <button id="toggleTranslation" class="ctrl-btn"><i class="fas fa-language"></i> ترجمة</button>
+            <button id="showTafsir" class="ctrl-btn"><i class="fas fa-book"></i> تفسير</button>
+            <button id="stopAudio" class="ctrl-btn hidden"><i class="fas fa-stop"></i> إيقاف</button>
+          </div>
+          <div id="audioStatus" class="audio-status hidden">جاري التشغيل...</div>
+          <div class="ayahs-container" id="ayahsContainer"></div>
+          <div id="tafsirBox" class="tafsir-box hidden"></div>
+        </div>
+      </section>
+
+      <!-- AZKAR SECTION -->
+      <section id="azkar" class="section">
+        <div class="section-header">
+          <button class="back-btn" data-back="home"><i class="fas fa-arrow-right"></i></button>
+          <h2>الأذكار المباركة</h2>
+        </div>
+        <div class="azkar-categories" id="azkarCategories">
+          <!-- Categories -->
+        </div>
+        <div id="azkarListView" class="azkar-list-view hidden">
+          <div class="section-header">
+            <button class="back-btn" id="backToAzkarCats"><i class="fas fa-arrow-right"></i></button>
+            <h2 id="azkarCatTitle"></h2>
+          </div>
+          <div class="azkar-items" id="azkarItems"></div>
+        </div>
+      </section>
+
+      <!-- KUNUZ (Treasures) SECTION -->
+      <section id="kunuz" class="section">
+        <div class="section-header">
+          <button class="back-btn" data-back="home"><i class="fas fa-arrow-right"></i></button>
+          <h2>كنوز من الذكر</h2>
+        </div>
+        <div class="kunuz-hero">
+          <div class="kunuz-icon">💎</div>
+          <h3>كنوز من الذكر</h3>
+          <p>أذكار عظيمة الأجر من السنة الصحيحة</p>
+        </div>
+        <div class="kunuz-list" id="kunuzList">
+          <!-- Filled by JS -->
+        </div>
+        <div id="kunuzDetail" class="kunuz-detail hidden">
+          <div class="section-header">
+            <button class="back-btn" id="backToKunuz"><i class="fas fa-arrow-right"></i></button>
+            <h2 id="kunuzDetailTitle"></h2>
+          </div>
+          <div id="kunuzDetailContent"></div>
+        </div>
+      </section>
+
+      <!-- SEBHA SECTION -->
+      <section id="sebha" class="section">
+        <div class="section-header">
+          <button class="back-btn" data-back="home"><i class="fas fa-arrow-right"></i></button>
+          <h2>السبحة الإلكترونية</h2>
+        </div>
+        <div class="sebha-container">
+          <div class="sebha-phrase" id="sebhaPhrase">سُبْحَانَ اللَّهِ</div>
+          <div class="sebha-count" id="sebhaCount">0</div>
+          <div class="sebha-target">الهدف: <span id="sebhaTarget">33</span></div>
+          <button class="sebha-btn" id="sebhaTap">
+            <div class="bead"></div>
+          </button>
+          <div class="sebha-actions">
+            <button class="small-btn" id="sebhaReset"><i class="fas fa-redo"></i> إعادة</button>
+            <button class="small-btn" id="sebhaChange"><i class="fas fa-exchange-alt"></i> تغيير الذكر</button>
+          </div>
+          <div class="hadith-box" id="sebhaHadith">
+            <p>عن أبي هريرة رضي الله عنه قال: قال رسول الله ﷺ: «من قال سبحان الله وبحمده في يوم مائة مرة حطت خطاياه وإن كانت مثل زبد البحر»</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- QIBLA SECTION -->
+      <section id="qibla" class="section">
+        <div class="section-header">
+          <button class="back-btn" data-back="home"><i class="fas fa-arrow-right"></i></button>
+          <h2>اتجاه القبلة</h2>
+        </div>
+        <div class="qibla-container">
+          <div class="compass-wrapper">
+            <div class="compass" id="compass">
+              <div class="compass-rose">
+                <span class="n">ش</span>
+                <span class="e">ق</span>
+                <span class="s">ج</span>
+                <span class="w">غ</span>
+              </div>
+              <div class="needle" id="needle"></div>
+              <div class="kaaba-marker" id="kaabaMarker"></div>
+            </div>
+          </div>
+          <div class="qibla-info">
+            <div class="info-item">
+              <span class="label">الاتجاه من الشمال</span>
+              <span class="value" id="qiblaAngle">--°</span>
+            </div>
+            <div class="info-item">
+              <span class="label">المسافة إلى الكعبة</span>
+              <span class="value" id="qiblaDistance">-- كم</span>
+            </div>
+          </div>
+          <p class="qibla-hint">ضع هاتفك أفقياً للحصول على أفضل نتيجة</p>
+          <div class="qibla-warning">
+            ⚠️ تحذير: البوصلة تقريبية وتعتمد على حساس الجوال والمتصفح. قد يكون هناك خطأ بعدة درجات. للاستخدام الدقيق استخدم بوصلة حقيقية أو تطبيق متخصص.
+          </div>
+          <button class="primary-btn" id="calibrateQibla">معايرة البوصلة</button>
+        </div>
+      </section>
+
+      <!-- ZAKAT SECTION -->
+      <section id="zakat" class="section">
+        <div class="section-header">
+          <button class="back-btn" data-back="home"><i class="fas fa-arrow-right"></i></button>
+          <h2>حاسبة الزكاة</h2>
+        </div>
+        <div class="zakat-tabs" id="zakatTabs">
+          <button class="zakat-tab active" data-type="money">المال</button>
+          <button class="zakat-tab" data-type="gold">الذهب</button>
+          <button class="zakat-tab" data-type="silver">الفضة</button>
+          <button class="zakat-tab" data-type="trade">التجارة</button>
+          <button class="zakat-tab" data-type="stocks">الأسهم</button>
+          <button class="zakat-tab" data-type="livestock">الأنعام</button>
+          <button class="zakat-tab" data-type="crops">الثمار</button>
+        </div>
+        <div class="zakat-form card">
+          <!-- Dynamic form fields -->
+          <div id="zakatFields"></div>
+          <div class="nisab-info" id="nisabInfo">نصاب الزكاة ≈ 85 جرام ذهب عيار 24</div>
+          <button class="primary-btn" id="calcZakat">احسب الزكاة</button>
+          <div class="zakat-result" id="zakatResult">
+            <div class="result-row">
+              <span id="zakatLabel">الزكاة المستحقة</span>
+              <strong id="zakatValue">0</strong>
+            </div>
+            <p id="zakatExtra" class="zakat-extra"></p>
+          </div>
+        </div>
+        <div class="zakat-note card">
+          <p><i class="fas fa-info-circle"></i> هذه الحاسبة تقريبية. للأنعام والثمار هناك جداول مفصلة حسب النوع والعدد. استشر عالماً موثوقاً للتطبيق الشرعي الدقيق.</p>
+        </div>
+      </section>
+
+      <!-- DEEDS / DAILY TASKS SECTION -->
+      <section id="deeds" class="section">
+        <div class="section-header">
+          <button class="back-btn" data-back="home"><i class="fas fa-arrow-right"></i></button>
+          <h2>عمل اليوم والليلة</h2>
+        </div>
+        <div class="deeds-progress card">
+          <div class="big-progress">
+            <span id="deedsPercent">0%</span>
+          </div>
+          <p id="deedsCountText">0 من 12 مهمة</p>
+        </div>
+        <div class="deeds-list" id="deedsList">
+          <!-- Filled by JS -->
+        </div>
+      </section>
+
+      <!-- RAMADAN SECTION -->
+      <section id="ramadan" class="section">
+        <div class="section-header">
+          <button class="back-btn" data-back="home"><i class="fas fa-arrow-right"></i></button>
+          <h2>رمضان كريم</h2>
+        </div>
+        <div class="ramadan-hero card">
+          <div class="ramadan-icon">🌙</div>
+          <h3 id="ramadanStatus">أهلاً بك في شهر الخير</h3>
+          <p id="ramadanDateInfo">تحقق من مواقيت السحور والإفطار أدناه</p>
+        </div>
+        <div class="suhoor-iftar card">
+          <div class="si-item">
+            <span class="si-label">السحور (حتى الفجر)</span>
+            <strong id="suhoorTime">--:--</strong>
+          </div>
+          <div class="si-item">
+            <span class="si-label">الإفطار (المغرب)</span>
+            <strong id="iftarTime">--:--</strong>
+          </div>
+        </div>
+        <div class="card">
+          <h3>نصائح رمضانية</h3>
+          <ul class="ramadan-tips">
+            <li>أكثر من قراءة القرآن وختمه</li>
+            <li>حافظ على صلاة التراويح</li>
+            <li>أكثر من الصدقة وإطعام الصائمين</li>
+            <li>اجعل لك ورداً من الأذكار والدعاء</li>
+            <li>تجنب الغيبة والنوم الكثير</li>
+            <li>ادعُ في الثلث الأخير من الليل</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>دعاء الإفطار</h3>
+          <p class="dua-text">ذَهَبَ الظَّمَأُ وَابْتَلَّتِ الْعُرُوقُ وَثَبَتَ الْأَجْرُ إِنْ شَاءَ اللَّهُ</p>
+        </div>
+        <div class="card">
+          <h3>تتبع أيام الصيام (محلي)</h3>
+          <div class="fasting-tracker" id="fastingTracker"></div>
+          <p class="hint">اضغط على اليوم لتسجيل الصيام</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-section="home">
+        <i class="fas fa-home"></i>
+        <span>الرئيسية</span>
+      </button>
+      <button class="nav-item" data-section="quran">
+        <i class="fas fa-book-quran"></i>
+        <span>المصحف</span>
+      </button>
+      <button class="nav-item" data-section="azkar">
+        <i class="fas fa-hands-praying"></i>
+        <span>الأذكار</span>
+      </button>
+      <button class="nav-item" data-section="sebha">
+        <i class="fas fa-circle-notch"></i>
+        <span>السبحة</span>
+      </button>
+      <button class="nav-item" data-section="more">
+        <i class="fas fa-ellipsis-h"></i>
+        <span>المزيد</span>
+      </button>
+    </nav>
+
+    <!-- More Menu Modal -->
+    <div id="moreMenu" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>المزيد</h3>
+          <button class="close-modal" id="closeMore"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="more-grid">
+          <button class="more-item" data-section="qibla"><i class="fas fa-compass"></i> القبلة</button>
+          <button class="more-item" data-section="zakat"><i class="fas fa-calculator"></i> حاسبة الزكاة</button>
+          <button class="more-item" data-section="deeds"><i class="fas fa-list-check"></i> عمل اليوم</button>
+          <button class="more-item" data-section="ramadan"><i class="fas fa-moon"></i> رمضان</button>
+          <button class="more-item" data-section="kunuz"><i class="fas fa-gem"></i> كنوز</button>
+          <button class="more-item" id="aboutBtn"><i class="fas fa-info-circle"></i> عن التطبيق</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="aboutModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>عن Redro Islamic</h3>
+          <button class="close-modal" id="closeAbout"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="about-body">
+          <p>تطبيق إسلامي شامل للمسلمين في كل مكان.</p>
+          <p>يحتوي على المصحف، الأذكار، السبحة، القبلة، حاسبة الزكاة، رمضان، ومهام يومية.</p>
+          <p class="version">الإصدار 1.1.0 — PWA</p>
+          <hr style="margin:16px 0;border-color:#333">
+          <p><strong>المطور</strong></p>
+          <p>mhamedshasho.redrostudios</p>
+          <p>📞 0995960632</p>
+          <p>📧 mhamedshasho2010@gmail.com</p>
+          <p class="credit" style="margin-top:16px">صُنع بحب ❤️ لوجه الله تعالى</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(console.log);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,1410 @@
+// ==================== Redro Islamic App ====================
+// Pure Frontend Islamic App - No Auth Required
+
+const KAABA = { lat: 21.4225, lng: 39.8262 };
+const DEFAULT_LOC = { lat: 36.2021, lng: 37.1343, name: 'حلب، سوريا' };
+
+// State
+let state = {
+  location: { ...DEFAULT_LOC },
+  prayerTimes: null,
+  nextPrayer: null,
+  countdownInterval: null,
+  currentSection: 'home',
+  sebha: { count: 0, index: 0, target: 33 },
+  qiblaAngle: 0,
+  deviceHeading: 0,
+  deeds: [],
+  azkarProgress: {},
+  favorites: [],
+  showTranslation: false,
+  currentSurah: null,
+  currentAyahs: [],
+  audio: null,
+  fastingDays: {}
+};
+
+// ==================== Data ====================
+const SEBHA_PHRASES = [
+  { text: 'سُبْحَانَ اللَّهِ', target: 33, hadith: 'عن أبي هريرة رضي الله عنه قال: قال رسول الله ﷺ: «من قال سبحان الله وبحمده في يوم مائة مرة حطت خطاياه وإن كانت مثل زبد البحر»' },
+  { text: 'الْحَمْدُ لِلَّهِ', target: 33, hadith: 'الحمد لله تملأ الميزان، وسبحان الله والحمد لله تملآن ما بين السماء والأرض.' },
+  { text: 'اللَّهُ أَكْبَرُ', target: 33, hadith: 'أفضل الكلام: سبحان الله، والحمد لله، ولا إله إلا الله، والله أكبر.' },
+  { text: 'لَا إِلَٰهَ إِلَّا اللَّهُ', target: 33, hadith: 'أفضل الذكر لا إله إلا الله.' },
+  { text: 'أَسْتَغْفِرُ اللَّهَ', target: 100, hadith: 'عن أبي هريرة قال: قال رسول الله ﷺ: «إني لأستغفر الله في اليوم مائة مرة»' },
+  { text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ', target: 100, hadith: 'من قال سبحان الله وبحمده مائة مرة غفرت خطاياه وإن كانت مثل زبد البحر.' }
+];
+
+const AZKAR_DATA = {
+  morning: {
+    title: 'أذكار الصباح',
+    icon: 'fa-sun',
+    items: [
+      { text: 'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', count: 1 },
+      { text: 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَىٰ عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ', count: 1 },
+      { text: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ...', count: 1 },
+      { text: 'قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ', count: 3 },
+      { text: 'قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ', count: 3 },
+      { text: 'قُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ', count: 3 },
+      { text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ', count: 100 },
+      { text: 'رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ ﷺ نَبِيًّا', count: 3 }
+    ]
+  },
+  evening: {
+    title: 'أذكار المساء',
+    icon: 'fa-moon',
+    items: [
+      { text: 'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', count: 1 },
+      { text: 'اللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ', count: 1 },
+      { text: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ...', count: 1 },
+      { text: 'قُلْ هُوَ اللَّهُ أَحَدٌ ...', count: 3 },
+      { text: 'قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ...', count: 3 },
+      { text: 'قُلْ أَعُوذُ بِرَبِّ النَّاسِ ...', count: 3 },
+      { text: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ', count: 3 },
+      { text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ', count: 100 }
+    ]
+  },
+  sleep: {
+    title: 'أذكار النوم',
+    icon: 'fa-bed',
+    items: [
+      { text: 'بِاسْمِكَ رَبِّي وَضَعْتُ جَنْبِي، وَبِكَ أَرْفَعُهُ، إِنْ أَمْسَكْتَ نَفْسِي فَارْحَمْهَا، وَإِنْ أَرْسَلْتَهَا فَاحْفَظْهَا بِمَا تَحْفَظُ بِهِ عِبَادَكَ الصَّالِحِينَ', count: 1 },
+      { text: 'اللَّهُمَّ إِنَّكَ خَلَقْتَ نَفْسِي وَأَنْتَ تَوَفَّاهَا، لَكَ مَمَاتُهَا وَمَحْيَاهَا، إِنْ أَحْيَيْتَهَا فَاحْفَظْهَا، وَإِنْ أَمَتَّهَا فَاغْفِرْ لَهَا', count: 1 },
+      { text: 'اللَّهُمَّ قِنِي عَذَابَكَ يَوْمَ تَبْعَثُ عِبَادَكَ', count: 3 },
+      { text: 'بِاسْمِكَ اللَّهُمَّ أَمُوتُ وَأَحْيَا', count: 1 },
+      { text: 'سُبْحَانَ اللَّهِ (33) الْحَمْدُ لِلَّهِ (33) اللَّهُ أَكْبَرُ (34)', count: 1 }
+    ]
+  },
+  afterPrayer: {
+    title: 'أذكار بعد الصلاة',
+    icon: 'fa-pray',
+    items: [
+      { text: 'أَسْتَغْفِرُ اللَّهَ (ثلاث مرات) اللَّهُمَّ أَنْتَ السَّلَامُ وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ', count: 1 },
+      { text: 'لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', count: 1 },
+      { text: 'اللَّهُمَّ أَعِنِّي عَلَىٰ ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ', count: 1 },
+      { text: 'سُبْحَانَ اللَّهِ (33) الْحَمْدُ لِلَّهِ (33) اللَّهُ أَكْبَرُ (33) ثم: لَا إِلَٰهَ إِلَّا اللَّهُ...', count: 1 },
+      { text: 'آية الكرسي', count: 1 }
+    ]
+  },
+  general: {
+    title: 'أذكار عامة',
+    icon: 'fa-heart',
+    items: [
+      { text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ سُبْحَانَ اللَّهِ الْعَظِيمِ', count: 1, ref: 'متفق عليه' },
+      { text: 'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ', count: 1, ref: 'صحيح البخاري' },
+      { text: 'حَسْبِيَ اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ عَلَيْهِ تَوَكَّلْتُ وَهُوَ رَبُّ الْعَرْشِ الْعَظِيمِ', count: 7, ref: 'أبو داود' },
+      { text: 'اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَىٰ نَبِيِّنَا مُحَمَّدٍ', count: 10, ref: 'فضل الصلاة على النبي' }
+    ]
+  },
+  kunuz: {
+    title: 'كنوز من الذكر',
+    icon: 'fa-gem',
+    items: [
+      { text: 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ', count: 10, ref: 'أسعد الناس بشفاعته من صلى عليه أكثر' },
+      { text: 'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ وَأَتُوبُ إِلَيْهِ', count: 3, ref: 'غفران الذنوب - الترمذي' },
+      { text: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ', count: 3, ref: 'حرز من الشيطان - مسلم' },
+      { text: 'سُبْحَانَ اللَّهِ وَالْحَمْدُ لِلَّهِ وَلَا إِلَٰهَ إِلَّا اللَّهُ وَاللَّهُ أَكْبَرُ', count: 1, ref: 'الباقيات الصالحات' },
+      { text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ سُبْحَانَ اللَّهِ الْعَظِيمِ', count: 1, ref: 'ثقيلتان في الميزان حبيبتان إلى الرحمن' },
+      { text: 'لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', count: 10, ref: 'غراس الجنة' },
+      { text: 'لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ يُحْيِي وَيُمِيتُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', count: 10, ref: 'كلمات تفتح لها أبواب السماء' },
+      { text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ', count: 100, ref: 'خير من جبل ذهب - مسلم' },
+      { text: 'لَا إِلَٰهَ إِلَّا اللَّهُ', count: 100, ref: 'من أعظم الأذكار أجراً' },
+      { text: 'سُبْحَانَ اللَّهِ وَالْحَمْدُ لِلَّهِ وَلَا إِلَٰهَ إِلَّا اللَّهُ وَاللَّهُ أَكْبَرُ وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ', count: 1, ref: 'زيادة الحسنات' },
+      { text: 'اللَّهُمَّ أَجِرْنِي مِنَ النَّارِ', count: 3, ref: 'النجاة من النار' }
+    ]
+  }
+};
+
+const DEEDS_LIST = [
+  'صلاة الفجر في جماعة أو في وقتها',
+  'قراءة أذكار الصباح كاملة',
+  'قراءة جزء من القرآن أو صفحة على الأقل',
+  'صلاة الضحى (ركعتين أو أكثر)',
+  'الصدقة ولو بالقليل',
+  'صلة الرحم أو الاتصال بأحد الأقارب',
+  'الاستغفار 100 مرة',
+  'الصلاة على النبي ﷺ 10 مرات',
+  'قراءة أذكار المساء',
+  'صلاة الوتر قبل النوم',
+  'قراءة أذكار النوم',
+  'الدعاء لنفسك ولأمتك'
+];
+
+const SURAH_NAMES = [
+  { number: 1, name: 'الفاتحة', english: 'Al-Fatiha', ayahs: 7, type: 'مكية' },
+  { number: 2, name: 'البقرة', english: 'Al-Baqarah', ayahs: 286, type: 'مدنية' },
+  { number: 3, name: 'آل عمران', english: 'Aal-Imran', ayahs: 200, type: 'مدنية' },
+  { number: 4, name: 'النساء', english: 'An-Nisa', ayahs: 176, type: 'مدنية' },
+  { number: 5, name: 'المائدة', english: 'Al-Maidah', ayahs: 120, type: 'مدنية' },
+  { number: 6, name: 'الأنعام', english: 'Al-Anam', ayahs: 165, type: 'مكية' },
+  { number: 7, name: 'الأعراف', english: 'Al-Araf', ayahs: 206, type: 'مكية' },
+  { number: 8, name: 'الأنفال', english: 'Al-Anfal', ayahs: 75, type: 'مدنية' },
+  { number: 9, name: 'التوبة', english: 'At-Tawbah', ayahs: 129, type: 'مدنية' },
+  { number: 10, name: 'يونس', english: 'Yunus', ayahs: 109, type: 'مكية' },
+  { number: 11, name: 'هود', english: 'Hud', ayahs: 123, type: 'مكية' },
+  { number: 12, name: 'يوسف', english: 'Yusuf', ayahs: 111, type: 'مكية' },
+  { number: 13, name: 'الرعد', english: 'Ar-Rad', ayahs: 43, type: 'مدنية' },
+  { number: 14, name: 'إبراهيم', english: 'Ibrahim', ayahs: 52, type: 'مكية' },
+  { number: 15, name: 'الحجر', english: 'Al-Hijr', ayahs: 99, type: 'مكية' },
+  { number: 16, name: 'النحل', english: 'An-Nahl', ayahs: 128, type: 'مكية' },
+  { number: 17, name: 'الإسراء', english: 'Al-Isra', ayahs: 111, type: 'مكية' },
+  { number: 18, name: 'الكهف', english: 'Al-Kahf', ayahs: 110, type: 'مكية' },
+  { number: 19, name: 'مريم', english: 'Maryam', ayahs: 98, type: 'مكية' },
+  { number: 20, name: 'طه', english: 'Ta-Ha', ayahs: 135, type: 'مكية' },
+  { number: 21, name: 'الأنبياء', english: 'Al-Anbiya', ayahs: 112, type: 'مكية' },
+  { number: 22, name: 'الحج', english: 'Al-Hajj', ayahs: 78, type: 'مدنية' },
+  { number: 23, name: 'المؤمنون', english: 'Al-Muminun', ayahs: 118, type: 'مكية' },
+  { number: 24, name: 'النور', english: 'An-Nur', ayahs: 64, type: 'مدنية' },
+  { number: 25, name: 'الفرقان', english: 'Al-Furqan', ayahs: 77, type: 'مكية' },
+  { number: 26, name: 'الشعراء', english: 'Ash-Shuara', ayahs: 227, type: 'مكية' },
+  { number: 27, name: 'النمل', english: 'An-Naml', ayahs: 93, type: 'مكية' },
+  { number: 28, name: 'القصص', english: 'Al-Qasas', ayahs: 88, type: 'مكية' },
+  { number: 29, name: 'العنكبوت', english: 'Al-Ankabut', ayahs: 69, type: 'مكية' },
+  { number: 30, name: 'الروم', english: 'Ar-Rum', ayahs: 60, type: 'مكية' },
+  { number: 31, name: 'لقمان', english: 'Luqman', ayahs: 34, type: 'مكية' },
+  { number: 32, name: 'السجدة', english: 'As-Sajdah', ayahs: 30, type: 'مكية' },
+  { number: 33, name: 'الأحزاب', english: 'Al-Ahzab', ayahs: 73, type: 'مدنية' },
+  { number: 34, name: 'سبأ', english: 'Saba', ayahs: 54, type: 'مكية' },
+  { number: 35, name: 'فاطر', english: 'Fatir', ayahs: 45, type: 'مكية' },
+  { number: 36, name: 'يس', english: 'Ya-Sin', ayahs: 83, type: 'مكية' },
+  { number: 37, name: 'الصافات', english: 'As-Saffat', ayahs: 182, type: 'مكية' },
+  { number: 38, name: 'ص', english: 'Sad', ayahs: 88, type: 'مكية' },
+  { number: 39, name: 'الزمر', english: 'Az-Zumar', ayahs: 75, type: 'مكية' },
+  { number: 40, name: 'غافر', english: 'Ghafir', ayahs: 85, type: 'مكية' },
+  { number: 41, name: 'فصلت', english: 'Fussilat', ayahs: 54, type: 'مكية' },
+  { number: 42, name: 'الشورى', english: 'Ash-Shura', ayahs: 53, type: 'مكية' },
+  { number: 43, name: 'الزخرف', english: 'Az-Zukhruf', ayahs: 89, type: 'مكية' },
+  { number: 44, name: 'الدخان', english: 'Ad-Dukhan', ayahs: 59, type: 'مكية' },
+  { number: 45, name: 'الجاثية', english: 'Al-Jathiyah', ayahs: 37, type: 'مكية' },
+  { number: 46, name: 'الأحقاف', english: 'Al-Ahqaf', ayahs: 35, type: 'مكية' },
+  { number: 47, name: 'محمد', english: 'Muhammad', ayahs: 38, type: 'مدنية' },
+  { number: 48, name: 'الفتح', english: 'Al-Fath', ayahs: 29, type: 'مدنية' },
+  { number: 49, name: 'الحجرات', english: 'Al-Hujurat', ayahs: 18, type: 'مدنية' },
+  { number: 50, name: 'ق', english: 'Qaf', ayahs: 45, type: 'مكية' },
+  { number: 51, name: 'الذاريات', english: 'Adh-Dhariyat', ayahs: 60, type: 'مكية' },
+  { number: 52, name: 'الطور', english: 'At-Tur', ayahs: 49, type: 'مكية' },
+  { number: 53, name: 'النجم', english: 'An-Najm', ayahs: 62, type: 'مكية' },
+  { number: 54, name: 'القمر', english: 'Al-Qamar', ayahs: 55, type: 'مكية' },
+  { number: 55, name: 'الرحمن', english: 'Ar-Rahman', ayahs: 78, type: 'مدنية' },
+  { number: 56, name: 'الواقعة', english: 'Al-Waqiah', ayahs: 96, type: 'مكية' },
+  { number: 57, name: 'الحديد', english: 'Al-Hadid', ayahs: 29, type: 'مدنية' },
+  { number: 58, name: 'المجادلة', english: 'Al-Mujadila', ayahs: 22, type: 'مدنية' },
+  { number: 59, name: 'الحشر', english: 'Al-Hashr', ayahs: 24, type: 'مدنية' },
+  { number: 60, name: 'الممتحنة', english: 'Al-Mumtahanah', ayahs: 13, type: 'مدنية' },
+  { number: 61, name: 'الصف', english: 'As-Saff', ayahs: 14, type: 'مدنية' },
+  { number: 62, name: 'الجمعة', english: 'Al-Jumuah', ayahs: 11, type: 'مدنية' },
+  { number: 63, name: 'المنافقون', english: 'Al-Munafiqun', ayahs: 11, type: 'مدنية' },
+  { number: 64, name: 'التغابن', english: 'At-Taghabun', ayahs: 18, type: 'مدنية' },
+  { number: 65, name: 'الطلاق', english: 'At-Talaq', ayahs: 12, type: 'مدنية' },
+  { number: 66, name: 'التحريم', english: 'At-Tahrim', ayahs: 12, type: 'مدنية' },
+  { number: 67, name: 'الملك', english: 'Al-Mulk', ayahs: 30, type: 'مكية' },
+  { number: 68, name: 'القلم', english: 'Al-Qalam', ayahs: 52, type: 'مكية' },
+  { number: 69, name: 'الحاقة', english: 'Al-Haqqah', ayahs: 52, type: 'مكية' },
+  { number: 70, name: 'المعارج', english: 'Al-Maarij', ayahs: 44, type: 'مكية' },
+  { number: 71, name: 'نوح', english: 'Nuh', ayahs: 28, type: 'مكية' },
+  { number: 72, name: 'الجن', english: 'Al-Jinn', ayahs: 28, type: 'مكية' },
+  { number: 73, name: 'المزمل', english: 'Al-Muzzammil', ayahs: 20, type: 'مكية' },
+  { number: 74, name: 'المدثر', english: 'Al-Muddaththir', ayahs: 56, type: 'مكية' },
+  { number: 75, name: 'القيامة', english: 'Al-Qiyamah', ayahs: 40, type: 'مكية' },
+  { number: 76, name: 'الإنسان', english: 'Al-Insan', ayahs: 31, type: 'مدنية' },
+  { number: 77, name: 'المرسلات', english: 'Al-Mursalat', ayahs: 50, type: 'مكية' },
+  { number: 78, name: 'النبأ', english: 'An-Naba', ayahs: 40, type: 'مكية' },
+  { number: 79, name: 'النازعات', english: 'An-Naziat', ayahs: 46, type: 'مكية' },
+  { number: 80, name: 'عبس', english: 'Abasa', ayahs: 42, type: 'مكية' },
+  { number: 81, name: 'التكوير', english: 'At-Takwir', ayahs: 29, type: 'مكية' },
+  { number: 82, name: 'الانفطار', english: 'Al-Infitar', ayahs: 19, type: 'مكية' },
+  { number: 83, name: 'المطففين', english: 'Al-Mutaffifin', ayahs: 36, type: 'مكية' },
+  { number: 84, name: 'الانشقاق', english: 'Al-Inshiqaq', ayahs: 25, type: 'مكية' },
+  { number: 85, name: 'البروج', english: 'Al-Buruj', ayahs: 22, type: 'مكية' },
+  { number: 86, name: 'الطارق', english: 'At-Tariq', ayahs: 17, type: 'مكية' },
+  { number: 87, name: 'الأعلى', english: 'Al-Ala', ayahs: 19, type: 'مكية' },
+  { number: 88, name: 'الغاشية', english: 'Al-Ghashiyah', ayahs: 26, type: 'مكية' },
+  { number: 89, name: 'الفجر', english: 'Al-Fajr', ayahs: 30, type: 'مكية' },
+  { number: 90, name: 'البلد', english: 'Al-Balad', ayahs: 20, type: 'مكية' },
+  { number: 91, name: 'الشمس', english: 'Ash-Shams', ayahs: 15, type: 'مكية' },
+  { number: 92, name: 'الليل', english: 'Al-Layl', ayahs: 21, type: 'مكية' },
+  { number: 93, name: 'الضحى', english: 'Ad-Duha', ayahs: 11, type: 'مكية' },
+  { number: 94, name: 'الشرح', english: 'Ash-Sharh', ayahs: 8, type: 'مكية' },
+  { number: 95, name: 'التين', english: 'At-Tin', ayahs: 8, type: 'مكية' },
+  { number: 96, name: 'العلق', english: 'Al-Alaq', ayahs: 19, type: 'مكية' },
+  { number: 97, name: 'القدر', english: 'Al-Qadr', ayahs: 5, type: 'مكية' },
+  { number: 98, name: 'البينة', english: 'Al-Bayyinah', ayahs: 8, type: 'مدنية' },
+  { number: 99, name: 'الزلزلة', english: 'Az-Zalzalah', ayahs: 8, type: 'مدنية' },
+  { number: 100, name: 'العاديات', english: 'Al-Adiyat', ayahs: 11, type: 'مكية' },
+  { number: 101, name: 'القارعة', english: 'Al-Qariah', ayahs: 11, type: 'مكية' },
+  { number: 102, name: 'التكاثر', english: 'At-Takathur', ayahs: 8, type: 'مكية' },
+  { number: 103, name: 'العصر', english: 'Al-Asr', ayahs: 3, type: 'مكية' },
+  { number: 104, name: 'الهمزة', english: 'Al-Humazah', ayahs: 9, type: 'مكية' },
+  { number: 105, name: 'الفيل', english: 'Al-Fil', ayahs: 5, type: 'مكية' },
+  { number: 106, name: 'قريش', english: 'Quraysh', ayahs: 4, type: 'مكية' },
+  { number: 107, name: 'الماعون', english: 'Al-Maun', ayahs: 7, type: 'مكية' },
+  { number: 108, name: 'الكوثر', english: 'Al-Kawthar', ayahs: 3, type: 'مكية' },
+  { number: 109, name: 'الكافرون', english: 'Al-Kafirun', ayahs: 6, type: 'مكية' },
+  { number: 110, name: 'النصر', english: 'An-Nasr', ayahs: 3, type: 'مدنية' },
+  { number: 111, name: 'المسد', english: 'Al-Masad', ayahs: 5, type: 'مكية' },
+  { number: 112, name: 'الإخلاص', english: 'Al-Ikhlas', ayahs: 4, type: 'مكية' },
+  { number: 113, name: 'الفلق', english: 'Al-Falaq', ayahs: 5, type: 'مكية' },
+  { number: 114, name: 'الناس', english: 'An-Nas', ayahs: 6, type: 'مكية' }
+];
+
+// ==================== Utils ====================
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return document.querySelectorAll(sel); }
+
+function saveState() {
+  localStorage.setItem('redro_deeds', JSON.stringify(state.deeds));
+  localStorage.setItem('redro_sebha', JSON.stringify(state.sebha));
+  localStorage.setItem('redro_azkar', JSON.stringify(state.azkarProgress));
+  localStorage.setItem('redro_favorites', JSON.stringify(state.favorites));
+  localStorage.setItem('redro_fasting', JSON.stringify(state.fastingDays));
+}
+
+function loadState() {
+  try {
+    const deeds = localStorage.getItem('redro_deeds');
+    if (deeds) state.deeds = JSON.parse(deeds);
+    else state.deeds = DEEDS_LIST.map(() => false);
+
+    const sebha = localStorage.getItem('redro_sebha');
+    if (sebha) state.sebha = JSON.parse(sebha);
+
+    const azkar = localStorage.getItem('redro_azkar');
+    if (azkar) state.azkarProgress = JSON.parse(azkar);
+
+    const favs = localStorage.getItem('redro_favorites');
+    if (favs) state.favorites = JSON.parse(favs);
+
+    const fasting = localStorage.getItem('redro_fasting');
+    if (fasting) state.fastingDays = JSON.parse(fasting);
+  } catch (e) {
+    state.deeds = DEEDS_LIST.map(() => false);
+  }
+}
+
+function toRad(d) { return d * Math.PI / 180; }
+function toDeg(r) { return r * 180 / Math.PI; }
+
+function calculateQibla(lat, lng) {
+  const φ1 = toRad(lat);
+  const φ2 = toRad(KAABA.lat);
+  const Δλ = toRad(KAABA.lng - lng);
+  const y = Math.sin(Δλ);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  let θ = toDeg(Math.atan2(y, x));
+  return (θ + 360) % 360;
+}
+
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function formatTime(t) {
+  if (!t) return '--:--';
+  const [h, m] = t.split(':').map(Number);
+  const period = h >= 12 ? 'م' : 'ص';
+  const h12 = h % 12 || 12;
+  return `${h12}:${m.toString().padStart(2,'0')} ${period}`;
+}
+
+// ==================== Prayer Times ====================
+async function fetchPrayerTimes() {
+  const { lat, lng } = state.location;
+  const date = new Date();
+  const dateStr = `${date.getDate().toString().padStart(2,'0')}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getFullYear()}`;
+  try {
+    const res = await fetch(`https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lng}&method=4`);
+    const data = await res.json();
+    if (data.code === 200) {
+      state.prayerTimes = data.data.timings;
+      const hijri = data.data.date.hijri;
+      $('#hijriDate').textContent = `${hijri.day} ${hijri.month.ar} ${hijri.year} هـ`;
+      $('#gregorianDate').textContent = data.data.date.readable;
+      applySeasonalTheme(hijri);
+      renderPrayerTimes();
+      startCountdown();
+    }
+  } catch (e) {
+    console.error('Prayer times error', e);
+    // Fallback approximate for Aleppo
+    state.prayerTimes = {
+      Fajr: '05:37', Sunrise: '07:15', Dhuhr: '12:18', Asr: '15:01', Maghrib: '17:20', Isha: '18:48'
+    };
+    renderPrayerTimes();
+    startCountdown();
+  }
+}
+
+function renderPrayerTimes() {
+  const names = {
+    Fajr: { ar: 'الفجر', icon: 'fa-moon' },
+    Sunrise: { ar: 'الشروق', icon: 'fa-sun' },
+    Dhuhr: { ar: 'الظهر', icon: 'fa-sun' },
+    Asr: { ar: 'العصر', icon: 'fa-cloud-sun' },
+    Maghrib: { ar: 'المغرب', icon: 'fa-sunset' },
+    Isha: { ar: 'العشاء', icon: 'fa-moon' }
+  };
+  const order = ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+  const grid = $('#prayerTimesGrid');
+  grid.innerHTML = '';
+  const now = new Date();
+  let nextKey = null;
+  let minDiff = Infinity;
+
+  order.forEach(key => {
+    const t = state.prayerTimes[key];
+    if (!t) return;
+    const [h, m] = t.split(':').map(Number);
+    const prayerDate = new Date(now);
+    prayerDate.setHours(h, m, 0, 0);
+    if (prayerDate < now) prayerDate.setDate(prayerDate.getDate() + 1);
+    const diff = prayerDate - now;
+    if (diff < minDiff && key !== 'Sunrise') {
+      minDiff = diff;
+      nextKey = key;
+    }
+  });
+
+  state.nextPrayer = nextKey;
+
+  order.forEach(key => {
+    const info = names[key];
+    const t = state.prayerTimes[key];
+    const card = document.createElement('div');
+    card.className = 'prayer-card' + (key === nextKey ? ' next' : '');
+    card.innerHTML = `
+      <div class="icon"><i class="fas ${info.icon}"></i></div>
+      <div class="name">${info.ar}</div>
+      <div class="time">${formatTime(t)}</div>
+    `;
+    grid.appendChild(card);
+  });
+
+  if (nextKey) {
+    $('#nextPrayerName').textContent = names[nextKey].ar;
+  }
+}
+
+function startCountdown() {
+  if (state.countdownInterval) clearInterval(state.countdownInterval);
+  state.countdownInterval = setInterval(() => {
+    if (!state.nextPrayer || !state.prayerTimes) return;
+    const t = state.prayerTimes[state.nextPrayer];
+    const [h, m] = t.split(':').map(Number);
+    const now = new Date();
+    let target = new Date(now);
+    target.setHours(h, m, 0, 0);
+    if (target <= now) target.setDate(target.getDate() + 1);
+    const diff = target - now;
+    if (diff <= 0) {
+      fetchPrayerTimes();
+      return;
+    }
+    const hrs = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    $('#countdown').textContent = `${hrs.toString().padStart(2,'0')}:${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+  }, 1000);
+}
+
+// ==================== Navigation ====================
+function showSection(id) {
+  $$('.section').forEach(s => s.classList.remove('active'));
+  const sec = $(`#${id}`);
+  if (sec) {
+    sec.classList.add('active');
+    state.currentSection = id;
+  }
+  $$('.nav-item').forEach(n => {
+    n.classList.toggle('active', n.dataset.section === id || (id === 'more' && n.dataset.section === 'more'));
+  });
+  // Reset nested views
+  if (id === 'quran') {
+    $('#ayahView').classList.add('hidden');
+    $('#surahList').classList.remove('hidden');
+  }
+  if (id === 'azkar') {
+    $('#azkarListView').classList.add('hidden');
+    $('#azkarCategories').classList.remove('hidden');
+  }
+  if (id === 'qibla') initQibla();
+  if (id === 'ramadan') initRamadan();
+  window.scrollTo(0, 0);
+}
+
+// ==================== Quran ====================
+function renderSurahList(filter = '') {
+  const list = $('#surahList');
+  list.innerHTML = '';
+  const filtered = SURAH_NAMES.filter(s => 
+    s.name.includes(filter) || s.english.toLowerCase().includes(filter.toLowerCase()) || s.number.toString() === filter
+  );
+  filtered.forEach(s => {
+    const btn = document.createElement('button');
+    btn.className = 'surah-item';
+    btn.innerHTML = `
+      <div class="surah-number">${s.number}</div>
+      <div class="surah-info">
+        <div class="surah-name">${s.name}</div>
+        <div class="surah-meta">${s.english} • ${s.type}</div>
+      </div>
+      <div class="surah-ayahs">${s.ayahs} آية</div>
+    `;
+    btn.onclick = () => loadSurah(s.number, s.name);
+    list.appendChild(btn);
+  });
+}
+
+async function loadSurah(num, name) {
+  state.currentSurah = num;
+  state.showTranslation = false;
+  $('#tafsirBox').classList.add('hidden');
+  $('#currentSurahName').textContent = `سورة ${name}`;
+  $('#surahList').classList.add('hidden');
+  $('#ayahView').classList.remove('hidden');
+  updateFavButton();
+  const container = $('#ayahsContainer');
+  container.innerHTML = '<p style="text-align:center;padding:40px;">جاري التحميل...</p>';
+
+  try {
+    // Fetch Arabic + English translation together
+    const [arRes, enRes] = await Promise.all([
+      fetch(`https://api.alquran.cloud/v1/surah/${num}/quran-uthmani`),
+      fetch(`https://api.alquran.cloud/v1/surah/${num}/en.sahih`)
+    ]);
+    const arData = await arRes.json();
+    const enData = await enRes.json();
+
+    if (arData.code === 200) {
+      state.currentAyahs = arData.data.ayahs.map((a, i) => ({
+        numberInSurah: a.numberInSurah,
+        number: a.number, // global ayah number for audio
+        text: a.text,
+        translation: enData.code === 200 ? enData.data.ayahs[i]?.text || '' : ''
+      }));
+      renderAyahs();
+    } else {
+      container.innerHTML = '<p>تعذر تحميل السورة</p>';
+    }
+  } catch (e) {
+    container.innerHTML = '<p>خطأ في الاتصال. تحقق من الإنترنت.</p>';
+  }
+}
+
+function renderAyahs() {
+  const container = $('#ayahsContainer');
+  let html = '';
+  const num = state.currentSurah;
+  if (num !== 1 && num !== 9) {
+    html += `<div class="bismillah">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>`;
+  }
+  state.currentAyahs.forEach(a => {
+    html += `<div class="ayah" data-ayah="${a.numberInSurah}">
+      <span class="ayah-number">${a.numberInSurah}</span> ${a.text}
+      ${state.showTranslation && a.translation ? `<span class="ayah-trans">${a.translation}</span>` : ''}
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function updateFavButton() {
+  const btn = $('#favSurahBtn');
+  if (!btn) return;
+  const isFav = state.favorites.includes(state.currentSurah);
+  btn.innerHTML = isFav ? '<i class="fas fa-star" style="color:#f59e0b"></i>' : '<i class="far fa-star"></i>';
+}
+
+function toggleFavorite() {
+  if (!state.currentSurah) return;
+  const idx = state.favorites.indexOf(state.currentSurah);
+  if (idx >= 0) state.favorites.splice(idx, 1);
+  else state.favorites.push(state.currentSurah);
+  saveState();
+  updateFavButton();
+}
+
+let currentAudioIndex = 0;
+function playSurahAudio() {
+  if (!state.currentAyahs.length) return;
+  stopAudio();
+  currentAudioIndex = 0;
+  $('#playAudio').classList.add('hidden');
+  $('#stopAudio').classList.remove('hidden');
+  $('#audioStatus').classList.remove('hidden');
+  playNextAyah();
+}
+
+function playNextAyah() {
+  if (currentAudioIndex >= state.currentAyahs.length) {
+    stopAudio();
+    return;
+  }
+  const ayah = state.currentAyahs[currentAudioIndex];
+  // Global ayah number for CDN (alafasy)
+  const audioUrl = `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${ayah.number}.mp3`;
+  state.audio = new Audio(audioUrl);
+  $('#audioStatus').textContent = `جاري تشغيل الآية ${ayah.numberInSurah}...`;
+  state.audio.play().catch(() => {
+    $('#audioStatus').textContent = 'تعذر تشغيل الصوت';
+  });
+  state.audio.onended = () => {
+    currentAudioIndex++;
+    playNextAyah();
+  };
+}
+
+function stopAudio() {
+  if (state.audio) {
+    state.audio.pause();
+    state.audio = null;
+  }
+  $('#playAudio').classList.remove('hidden');
+  $('#stopAudio').classList.add('hidden');
+  $('#audioStatus').classList.add('hidden');
+}
+
+async function showTafsir() {
+  const box = $('#tafsirBox');
+  if (!box.classList.contains('hidden')) {
+    box.classList.add('hidden');
+    return;
+  }
+  box.classList.remove('hidden');
+  box.innerHTML = '<p>جاري تحميل التفسير...</p>';
+  try {
+    // Using Muyassar tafsir (simple)
+    const res = await fetch(`https://api.alquran.cloud/v1/surah/${state.currentSurah}/ar.muyassar`);
+    const data = await res.json();
+    if (data.code === 200) {
+      let html = '<h4 style="margin-bottom:12px;">تفسير ميسر</h4>';
+      data.data.ayahs.slice(0, 10).forEach(a => { // first 10 for performance
+        html += `<p><strong>${a.numberInSurah}.</strong> ${a.text}</p>`;
+      });
+      if (data.data.ayahs.length > 10) html += '<p style="color:#64748b">... (عرض أول 10 آيات)</p>';
+      box.innerHTML = html;
+    } else {
+      box.innerHTML = '<p>تعذر تحميل التفسير حالياً. يمكنك الرجوع لكتب التفسير المعتمدة.</p>';
+    }
+  } catch {
+    box.innerHTML = '<p>تعذر الاتصال. جرب لاحقاً.</p>';
+  }
+}
+
+// ==================== Azkar ====================
+function renderAzkarCategories() {
+  const cont = $('#azkarCategories');
+  cont.innerHTML = '';
+  Object.keys(AZKAR_DATA).forEach(key => {
+    const cat = AZKAR_DATA[key];
+    const btn = document.createElement('button');
+    btn.className = 'azkar-cat';
+    btn.innerHTML = `<i class="fas ${cat.icon}"></i><span>${cat.title}</span>`;
+    btn.onclick = () => showAzkarList(key);
+    cont.appendChild(btn);
+  });
+}
+
+function showAzkarList(key) {
+  const cat = AZKAR_DATA[key];
+  $('#azkarCatTitle').textContent = cat.title;
+  $('#azkarCategories').classList.add('hidden');
+  $('#azkarListView').classList.remove('hidden');
+  const items = $('#azkarItems');
+  items.innerHTML = '';
+
+  cat.items.forEach((item, idx) => {
+    const progKey = `${key}_${idx}`;
+    const current = state.azkarProgress[progKey] || 0;
+    const div = document.createElement('div');
+    div.className = 'azkar-item';
+    div.innerHTML = `
+      <div class="azkar-text">${item.text}</div>
+      <div class="azkar-meta">
+        <span>المطلوب: ${item.count}</span>
+        <div class="azkar-counter">
+          <button class="count-btn" data-key="${progKey}" data-max="${item.count}">+</button>
+          <span class="count-display" id="cnt_${progKey}">${current}</span>
+          <button class="count-btn reset" data-key="${progKey}">↺</button>
+        </div>
+      </div>
+    `;
+    items.appendChild(div);
+  });
+
+  items.querySelectorAll('.count-btn').forEach(btn => {
+    btn.onclick = (e) => {
+      const key = btn.dataset.key;
+      if (btn.classList.contains('reset')) {
+        state.azkarProgress[key] = 0;
+      } else {
+        const max = parseInt(btn.dataset.max);
+        state.azkarProgress[key] = Math.min((state.azkarProgress[key] || 0) + 1, max);
+      }
+      $(`#cnt_${key}`).textContent = state.azkarProgress[key] || 0;
+      saveState();
+      updateDailyProgress();
+    };
+  });
+}
+
+// ==================== Sebha ====================
+function updateSebhaUI() {
+  const p = SEBHA_PHRASES[state.sebha.index];
+  $('#sebhaPhrase').textContent = p.text;
+  $('#sebhaCount').textContent = state.sebha.count;
+  $('#sebhaTarget').textContent = p.target;
+  $('#sebhaHadith').innerHTML = `<p>${p.hadith}</p>`;
+}
+
+function sebhaTap() {
+  state.sebha.count++;
+  const p = SEBHA_PHRASES[state.sebha.index];
+  if (state.sebha.count >= p.target) {
+    // Vibrate if available
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+  }
+  updateSebhaUI();
+  saveState();
+}
+
+// ==================== Qibla ====================
+function initQibla() {
+  const angle = calculateQibla(state.location.lat, state.location.lng);
+  state.qiblaAngle = angle;
+  $('#qiblaAngle').textContent = angle.toFixed(1) + '°';
+  const dist = haversine(state.location.lat, state.location.lng, KAABA.lat, KAABA.lng);
+  $('#qiblaDistance').textContent = Math.round(dist) + ' كم';
+
+  // Try device orientation
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+    window.addEventListener('deviceorientation', handleOrientation, true);
+  }
+  updateCompass(0);
+}
+
+function handleOrientation(e) {
+  let heading = e.absolute ? e.alpha : (e.webkitCompassHeading || e.alpha);
+  if (heading == null) return;
+  state.deviceHeading = heading;
+  updateCompass(heading);
+}
+
+function updateCompass(heading) {
+  // Needle points to north relative to device, we rotate so that qibla is up when facing it
+  const rotation = state.qiblaAngle - heading;
+  $('#needle').style.transform = `translate(-50%, -100%) rotate(${rotation}deg)`;
+  $('#kaabaMarker').style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+}
+
+// ==================== Zakat ====================
+function renderZakatFields(type) {
+  const fields = $('#zakatFields');
+  const nisab = $('#nisabInfo');
+  let html = '';
+  if (type === 'money' || type === 'trade' || type === 'stocks') {
+    html = `
+      <div class="form-group">
+        <label>${type === 'money' ? 'المبلغ النقدي' : type === 'trade' ? 'قيمة عروض التجارة' : 'قيمة الأسهم / الصناديق'}</label>
+        <input type="number" id="zakatAmount" placeholder="أدخل القيمة" min="0">
+      </div>`;
+    nisab.textContent = 'النصاب ≈ قيمة 85 جرام ذهب عيار 24 (حوالي 2.5% بعد حولان الحول)';
+  } else if (type === 'gold') {
+    html = `
+      <div class="form-group">
+        <label>وزن الذهب (جرام)</label>
+        <input type="number" id="zakatAmount" placeholder="الوزن بالجرام" min="0">
+      </div>
+      <div class="form-group">
+        <label>عيار الذهب</label>
+        <select id="goldKarat">
+          <option value="24">24 قيراط (خالص)</option>
+          <option value="22">22 قيراط</option>
+          <option value="21">21 قيراط</option>
+          <option value="18">18 قيراط</option>
+        </select>
+      </div>`;
+    nisab.textContent = 'نصاب الذهب = 85 جرام عيار 24 (أو ما يعادله من العيارات الأخرى)';
+  } else if (type === 'silver') {
+    html = `
+      <div class="form-group">
+        <label>وزن الفضة (جرام)</label>
+        <input type="number" id="zakatAmount" placeholder="الوزن بالجرام" min="0">
+      </div>`;
+    nisab.textContent = 'نصاب الفضة = 595 جرام تقريباً';
+  } else if (type === 'livestock') {
+    html = `
+      <div class="form-group">
+        <label>نوع الأنعام</label>
+        <select id="livestockType">
+          <option value="sheep">الغنم (شياه)</option>
+          <option value="cows">البقر</option>
+          <option value="camels">الإبل</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>العدد</label>
+        <input type="number" id="zakatAmount" placeholder="عدد الرؤوس" min="0">
+      </div>`;
+    nisab.textContent = 'للغنم: النصاب 40. للبقر: 30. للإبل: 5. (جداول مفصلة حسب العدد)';
+  } else if (type === 'crops') {
+    html = `
+      <div class="form-group">
+        <label>نوع الري</label>
+        <select id="irrigationType">
+          <option value="natural">بعلاً (مطر / أنهار) - 10%</option>
+          <option value="irrigated">مسقي (آلات) - 5%</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>كمية المحصول (كجم أو قيمة)</label>
+        <input type="number" id="zakatAmount" placeholder="الكمية أو القيمة" min="0">
+      </div>`;
+    nisab.textContent = 'نصاب الزروع والثمار ≈ 653 كجم (5 أوسق). العشر أو نصف العشر حسب الري.';
+  }
+  fields.innerHTML = html;
+}
+
+function calcZakat() {
+  const type = document.querySelector('.zakat-tab.active')?.dataset.type || 'money';
+  const amount = parseFloat($('#zakatAmount')?.value) || 0;
+  let zakat = 0;
+  let extra = '';
+  let label = 'الزكاة المستحقة';
+
+  if (type === 'money' || type === 'trade' || type === 'stocks') {
+    zakat = amount * 0.025;
+    label = 'الزكاة (2.5%)';
+  } else if (type === 'gold') {
+    const karat = parseInt($('#goldKarat')?.value) || 24;
+    const pureGrams = amount * (karat / 24);
+    if (pureGrams >= 85) {
+      zakat = pureGrams * 0.025; // in grams of pure gold
+      extra = `≈ ${(pureGrams * 0.025).toFixed(2)} جرام ذهب خالص`;
+      label = 'الزكاة بالذهب';
+    } else {
+      extra = 'لم يبلغ النصاب (85 جرام عيار 24)';
+    }
+  } else if (type === 'silver') {
+    if (amount >= 595) {
+      zakat = amount * 0.025;
+      extra = `≈ ${(amount * 0.025).toFixed(1)} جرام فضة`;
+      label = 'الزكاة بالفضة';
+    } else {
+      extra = 'لم يبلغ النصاب (595 جرام تقريباً)';
+    }
+  } else if (type === 'livestock') {
+    const kind = $('#livestockType')?.value || 'sheep';
+    const n = amount;
+    if (kind === 'sheep') {
+      if (n < 40) extra = 'أقل من النصاب (40)';
+      else if (n < 121) { zakat = 1; extra = 'شاة واحدة'; }
+      else if (n < 201) { zakat = 2; extra = 'شاتان'; }
+      else if (n < 401) { zakat = 3; extra = 'ثلاث شياه'; }
+      else { zakat = Math.floor(n / 100); extra = `${zakat} شياه (تقريبي)`; }
+      label = 'الزكاة';
+    } else if (kind === 'cows') {
+      if (n < 30) extra = 'أقل من النصاب (30)';
+      else if (n < 40) { zakat = 1; extra = 'تبيع (عجل)'; }
+      else if (n < 60) { zakat = 1; extra = 'مسنة'; }
+      else { zakat = Math.floor(n / 30); extra = `تقريباً ${zakat} من الأبقار`; }
+      label = 'الزكاة';
+    } else { // camels
+      if (n < 5) extra = 'أقل من النصاب (5)';
+      else if (n < 10) { zakat = 1; extra = 'شاة'; }
+      else if (n < 15) { zakat = 2; extra = 'شاتان'; }
+      else if (n < 20) { zakat = 3; extra = 'ثلاث شياه'; }
+      else if (n < 25) { zakat = 4; extra = 'أربع شياه'; }
+      else { extra = 'جدول مفصل حسب العدد (استشر عالماً)'; }
+      label = 'الزكاة';
+    }
+  } else if (type === 'crops') {
+    const rate = $('#irrigationType')?.value === 'natural' ? 0.1 : 0.05;
+    zakat = amount * rate;
+    label = `الزكاة (${rate * 100}%)`;
+    extra = rate === 0.1 ? 'عشر المحصول (ري طبيعي)' : 'نصف العشر (ري بالآلات)';
+  }
+
+  $('#zakatValue').textContent = typeof zakat === 'number' && zakat % 1 !== 0 ? zakat.toFixed(2) : zakat;
+  $('#zakatLabel').textContent = label;
+  $('#zakatExtra').textContent = extra;
+}
+
+// ==================== Deeds ====================
+function renderDeeds() {
+  const list = $('#deedsList');
+  list.innerHTML = '';
+  DEEDS_LIST.forEach((text, i) => {
+    const done = state.deeds[i];
+    const div = document.createElement('div');
+    div.className = 'deed-item' + (done ? ' done' : '');
+    div.innerHTML = `
+      <div class="deed-check">${done ? '<i class="fas fa-check"></i>' : ''}</div>
+      <div class="deed-text">${text}</div>
+    `;
+    div.onclick = () => {
+      state.deeds[i] = !state.deeds[i];
+      saveState();
+      renderDeeds();
+  renderKunuzList();
+      updateDailyProgress();
+    };
+    list.appendChild(div);
+  });
+  updateDailyProgress();
+}
+
+function updateDailyProgress() {
+  const done = state.deeds.filter(Boolean).length;
+  const total = DEEDS_LIST.length;
+  const pct = Math.round((done / total) * 100);
+  $('#deedsPercent').textContent = pct + '%';
+  $('#deedsCountText').textContent = `${done} من ${total} مهمة`;
+  $('#dailyProgress').style.width = pct + '%';
+  $('#progressText').textContent = `${done} / ${total} مهام مكتملة`;
+}
+
+// ==================== Location ====================
+function getLocation() {
+  if (!navigator.geolocation) {
+    alert('المتصفح لا يدعم تحديد الموقع');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(async pos => {
+    state.location.lat = pos.coords.latitude;
+    state.location.lng = pos.coords.longitude;
+    // Reverse geocode approx
+    try {
+      const res = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${state.location.lat}&longitude=${state.location.lng}&localityLanguage=ar`);
+      const data = await res.json();
+      state.location.name = `${data.city || data.locality || ''}, ${data.countryName || ''}`.trim() || 'موقعك الحالي';
+    } catch {
+      state.location.name = 'موقعك الحالي';
+    }
+    $('#locationName').textContent = state.location.name;
+    fetchPrayerTimes();
+    if (state.currentSection === 'qibla') initQibla();
+  }, err => {
+    alert('تعذر الحصول على الموقع. سيتم استخدام حلب افتراضياً.');
+  }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+// ==================== Init ====================
+function init() {
+  loadState();
+  renderSurahList();
+  renderAzkarCategories();
+  renderDeeds();
+  renderKunuzList();
+  updateSebhaUI();
+
+  // Events
+  $$('.nav-item').forEach(btn => {
+    btn.onclick = () => {
+      const sec = btn.dataset.section;
+      if (sec === 'more') {
+        $('#moreMenu').classList.remove('hidden');
+      } else {
+        showSection(sec);
+      }
+    };
+  });
+
+  $$('.action-card').forEach(btn => {
+    btn.onclick = () => showSection(btn.dataset.section);
+  });
+
+  $$('.back-btn').forEach(btn => {
+    if (btn.dataset.back) {
+      btn.onclick = () => showSection(btn.dataset.back);
+    }
+  });
+
+  $('#backToSurahs').onclick = () => {
+    $('#ayahView').classList.add('hidden');
+    $('#surahList').classList.remove('hidden');
+  };
+
+  $('#backToAzkarCats').onclick = () => {
+    $('#azkarListView').classList.add('hidden');
+    $('#azkarCategories').classList.remove('hidden');
+  };
+
+  $('#surahSearch').oninput = (e) => renderSurahList(e.target.value);
+
+  $('#sebhaTap').onclick = sebhaTap;
+  $('#sebhaReset').onclick = () => {
+    state.sebha.count = 0;
+    updateSebhaUI();
+    saveState();
+  };
+  $('#sebhaChange').onclick = () => {
+    state.sebha.index = (state.sebha.index + 1) % SEBHA_PHRASES.length;
+    state.sebha.count = 0;
+    updateSebhaUI();
+    saveState();
+  };
+
+  // Zakat tabs
+  $$('.zakat-tab').forEach(tab => {
+    tab.onclick = () => {
+      $$('.zakat-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      renderZakatFields(tab.dataset.type);
+    };
+  });
+  renderZakatFields('money');
+  $('#calcZakat').onclick = calcZakat;
+
+  // Quran controls
+  $('#playAudio')?.addEventListener('click', playSurahAudio);
+  $('#stopAudio')?.addEventListener('click', stopAudio);
+  $('#toggleTranslation')?.addEventListener('click', () => {
+    state.showTranslation = !state.showTranslation;
+    renderAyahs();
+  });
+  $('#showTafsir')?.addEventListener('click', showTafsir);
+  $('#favSurahBtn')?.addEventListener('click', toggleFavorite);
+
+  $('#changeLocBtn').onclick = getLocation;
+
+  // Top header buttons
+  const menuBtn = document.getElementById("menuBtn");
+  const profileBtn = document.getElementById("profileBtn");
+  if (menuBtn) menuBtn.onclick = () => $("#moreMenu").classList.remove("hidden");
+  if (profileBtn) profileBtn.onclick = () => {
+    $("#aboutModal").classList.remove("hidden");
+  };
+
+
+  $('#closeMore').onclick = () => $('#moreMenu').classList.add('hidden');
+  $('#closeAbout').onclick = () => $('#aboutModal').classList.add('hidden');
+  $('#aboutBtn').onclick = () => {
+    $('#moreMenu').classList.add('hidden');
+    $('#aboutModal').classList.remove('hidden');
+  };
+
+  $$('.more-item[data-section]').forEach(btn => {
+    btn.onclick = () => {
+      $('#moreMenu').classList.add('hidden');
+      showSection(btn.dataset.section);
+      if (btn.dataset.section === 'ramadan') initRamadan();
+    };
+  });
+
+  // Start
+  $('#locationName').textContent = state.location.name;
+  fetchPrayerTimes();
+
+  // Hide loading
+  setTimeout(() => {
+    $('#loading').classList.add('hidden');
+    $('#app').classList.remove('hidden');
+  }, 800);
+}
+
+// ==================== Ramadan ====================
+function initRamadan() {
+  if (state.prayerTimes) {
+    $('#suhoorTime').textContent = formatTime(state.prayerTimes.Fajr);
+    $('#iftarTime').textContent = formatTime(state.prayerTimes.Maghrib);
+  }
+  // Simple 30-day tracker
+  const tracker = $('#fastingTracker');
+  if (!tracker) return;
+  tracker.innerHTML = '';
+  for (let d = 1; d <= 30; d++) {
+    const day = document.createElement('div');
+    day.className = 'fast-day' + (state.fastingDays[d] ? ' done' : '');
+    day.textContent = d;
+    day.onclick = () => {
+      state.fastingDays[d] = !state.fastingDays[d];
+      day.classList.toggle('done');
+      saveState();
+    };
+    tracker.appendChild(day);
+  }
+}
+
+
+
+document.addEventListener('DOMContentLoaded', init);
+
+// ==================== Settings & Theme & Sound ====================
+state.settings = {
+  theme: localStorage.getItem('redro_theme') || 'dark',
+  sound: localStorage.getItem('redro_sound') !== 'false',
+  vibration: localStorage.getItem('redro_vibration') !== 'false'
+};
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', state.settings.theme);
+  localStorage.setItem('redro_theme', state.settings.theme);
+}
+
+function playSebhaSound() {
+  if (!state.settings.sound) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 800;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.1);
+  } catch(e) {}
+}
+
+// Override sebhaTap to include sound + vibration
+const _oldSebhaTap = sebhaTap;
+sebhaTap = function() {
+  state.sebha.count++;
+  const p = SEBHA_PHRASES[state.sebha.index];
+  playSebhaSound();
+  if (state.settings.vibration && navigator.vibrate) {
+    navigator.vibrate(state.sebha.count >= p.target ? [40, 20, 40] : 15);
+  }
+  updateSebhaUI();
+  saveState();
+};
+
+// Apply theme on load
+if (state.settings) applyTheme(); else { document.documentElement.setAttribute("data-theme", localStorage.getItem("redro_theme") || "dark"); }
+
+// Simple settings from about or more - can expand later
+console.log('Redro Islamic PWA ready | Developer: mhamedshasho.redrostudios');
+
+// ==================== Seasonal Themes (Ramadan, Eids...) ====================
+function applySeasonalTheme(hijri) {
+  if (!hijri) return;
+  const month = parseInt(hijri.month.number);
+  const day = parseInt(hijri.day);
+  let season = 'normal';
+
+  // رمضان (شهر 9)
+  if (month === 9) {
+    season = 'ramadan';
+  }
+  // عيد الفطر (1-3 شوال)
+  else if (month === 10 && day <= 3) {
+    season = 'eid-fitr';
+  }
+  // عيد الأضحى (10-13 ذو الحجة)
+  else if (month === 12 && day >= 10 && day <= 13) {
+    season = 'eid-adha';
+  }
+  // محرم
+  else if (month === 1) {
+    season = 'muharram';
+  }
+  // ربيع الأول - المولد
+  else if (month === 3 && day >= 11 && day <= 13) {
+    season = 'mawlid';
+  }
+
+  // Apply to html element
+  document.documentElement.setAttribute('data-season', season);
+
+  // Optional: show a small banner on home
+  let banner = document.getElementById('seasonBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'seasonBanner';
+    banner.className = 'season-banner';
+    const home = document.getElementById('home');
+    if (home) home.insertBefore(banner, home.firstChild);
+  }
+
+  const messages = {
+    ramadan: '🌙 رمضان كريم — تقبل الله صيامكم وقيامكم',
+    'eid-fitr': '🎉 عيد فطر مبارك — تقبل الله طاعاتكم',
+    'eid-adha': '🐑 عيد أضحى مبارك — تقبل الله منكم',
+    muharram: '🖤 شهر الله المحرم',
+    mawlid: '💚 ذكرى المولد النبوي الشريف',
+    normal: ''
+  };
+
+  if (messages[season]) {
+    banner.textContent = messages[season];
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+// ==================== Enhanced Sound System ====================
+const Sound = {
+  ctx: null,
+  init() {
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) {}
+  },
+  play(freq = 600, duration = 0.08, type = 'sine', volume = 0.12) {
+    if (!state.settings?.sound) return;
+    try {
+      if (!this.ctx) this.init();
+      if (this.ctx.state === 'suspended') this.ctx.resume();
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = type;
+      gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+      osc.start(this.ctx.currentTime);
+      osc.stop(this.ctx.currentTime + duration);
+    } catch(e) {}
+  },
+  click()   { this.play(700, 0.05, 'sine', 0.08); },
+  success() { this.play(880, 0.12, 'triangle', 0.1); this.play(1100, 0.15, 'sine', 0.07); },
+  sebha()   { this.play(750, 0.07, 'sine', 0.11); },
+  complete(){ this.play(523, 0.1); setTimeout(() => this.play(659, 0.1), 80); setTimeout(() => this.play(784, 0.15), 160); },
+  nav()     { this.play(500, 0.04, 'triangle', 0.06); }
+};
+
+// Enhance sebha with better feedback
+const _sebhaOriginal = sebhaTap;
+sebhaTap = function() {
+  state.sebha.count++;
+  const p = SEBHA_PHRASES[state.sebha.index];
+  
+  Sound.sebha();
+  
+  // Visual bounce
+  const btn = document.getElementById('sebhaTap');
+  const countEl = document.getElementById('sebhaCount');
+  if (btn) {
+    btn.classList.remove('bounce');
+    void btn.offsetWidth;
+    btn.classList.add('bounce');
+  }
+  if (countEl) {
+    countEl.classList.remove('pop');
+    void countEl.offsetWidth;
+    countEl.classList.add('pop');
+  }
+
+  if (state.sebha.count >= p.target) {
+    Sound.complete();
+    if (state.settings?.vibration && navigator.vibrate) {
+      navigator.vibrate([30, 40, 30, 40, 50]);
+    }
+  } else if (state.settings?.vibration && navigator.vibrate) {
+    navigator.vibrate(12);
+  }
+
+  updateSebhaUI();
+  saveState();
+};
+
+// Add click sounds to navigation and important buttons
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button, .action-card, .nav-item, .surah-item, .azkar-cat, .deed-item, .more-item, .zakat-tab');
+  if (t && !t.id?.includes('sebha')) {
+    Sound.click();
+  }
+}, true);
+
+// Nav sound
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => Sound.nav());
+});
+
+console.log('%cRedro Islamic', 'color:#dc2626;font-size:16px;font-weight:bold', '- Sounds & Animations ready');
+
+// ==================== Kunuz (Treasures of Dhikr) ====================
+const KUNUZ_LIST = [
+  {
+    id: 'shafaa',
+    title: 'أسعد الناس بشفاعة النبي ﷺ',
+    emoji: '🌙',
+    items: [
+      { text: 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ، كَمَا صَلَّيْتَ عَلَىٰ إِبْرَاهِيمَ وَعَلَىٰ آلِ إِبْرَاهِيمَ، إِنَّكَ حَمِيدٌ مَجِيدٌ', count: 10, ref: 'الصلاة الإبراهيمية - متفق عليه' }
+    ]
+  },
+  {
+    id: 'ghufran',
+    title: 'غفران الذنوب',
+    emoji: '❤️',
+    items: [
+      { text: 'أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ الَّذِي لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ وَأَتُوبُ إِلَيْهِ', count: 3, ref: 'الترمذي - حسن' },
+      { text: 'رَبِّ اغْفِرْ لِي وَتُبْ عَلَيَّ إِنَّكَ أَنْتَ التَّوَّابُ الرَّحِيمُ', count: 100, ref: 'أبو داود' }
+    ]
+  },
+  {
+    id: 'hirz',
+    title: 'حرز من الشيطان',
+    emoji: '🛡️',
+    items: [
+      { text: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ', count: 3, ref: 'صحيح مسلم' },
+      { text: 'بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ', count: 3, ref: 'أبو داود والترمذي' }
+    ]
+  },
+  {
+    id: 'baqiyat',
+    title: 'الباقيات الصالحات',
+    emoji: '🌱',
+    items: [
+      { text: 'سُبْحَانَ اللَّهِ وَالْحَمْدُ لِلَّهِ وَلَا إِلَٰهَ إِلَّا اللَّهُ وَاللَّهُ أَكْبَرُ', count: 1, ref: 'الباقيات الصالحات - ابن عباس' }
+    ]
+  },
+  {
+    id: 'thaqilatan',
+    title: 'ثقيلتان وحبيبتان',
+    emoji: '⚖️',
+    items: [
+      { text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ سُبْحَانَ اللَّهِ الْعَظِيمِ', count: 1, ref: 'كلمتان خفيفتان على اللسان ثقيلتان في الميزان حبيبتان إلى الرحمن - متفق عليه' }
+    ]
+  },
+  {
+    id: 'jannah',
+    title: 'بناء الجنة وغراسها',
+    emoji: '🌴',
+    items: [
+      { text: 'لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', count: 10, ref: 'غراس الجنة - الترمذي' },
+      { text: 'سُبْحَانَ اللَّهِ وَالْحَمْدُ لِلَّهِ وَلَا إِلَٰهَ إِلَّا اللَّهُ وَاللَّهُ أَكْبَرُ', count: 1, ref: 'من قالهن غُرست له نخلة في الجنة' }
+    ]
+  },
+  {
+    id: 'abwab',
+    title: 'كلمات تفتح لها أبواب السماء',
+    emoji: '🚪',
+    items: [
+      { text: 'لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ يُحْيِي وَيُمِيتُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', count: 10, ref: 'تفتح لها أبواب السماء - النسائي' }
+    ]
+  },
+  {
+    id: 'dhahab',
+    title: 'خير من جبل ذهب',
+    emoji: '🏔️',
+    items: [
+      { text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ', count: 100, ref: 'من قالها مائة مرة حطت خطاياه وإن كانت مثل زبد البحر - مسلم' }
+    ]
+  },
+  {
+    id: 'azam',
+    title: 'من أعظم الأذكار أجراً',
+    emoji: '✊',
+    items: [
+      { text: 'لَا إِلَٰهَ إِلَّا اللَّهُ', count: 100, ref: 'أفضل الذكر لا إله إلا الله - الترمذي' }
+    ]
+  },
+  {
+    id: 'hasanat',
+    title: 'زيادة الحسنات وتكثيرها',
+    emoji: '📈',
+    items: [
+      { text: 'سُبْحَانَ اللَّهِ وَالْحَمْدُ لِلَّهِ وَلَا إِلَٰهَ إِلَّا اللَّهُ وَاللَّهُ أَكْبَرُ وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ', count: 1, ref: 'من الباقيات الصالحات' }
+    ]
+  },
+  {
+    id: 'nar',
+    title: 'النجاة من النار',
+    emoji: '🔥',
+    items: [
+      { text: 'اللَّهُمَّ أَجِرْنِي مِنَ النَّارِ', count: 3, ref: 'كان يقولها بعد المغرب - أبو داود' },
+      { text: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْجَنَّةَ وَأَعُوذُ بِكَ مِنَ النَّارِ', count: 3, ref: 'الترمذي' }
+    ]
+  }
+];
+
+function renderKunuzList() {
+  const list = document.getElementById('kunuzList');
+  if (!list) return;
+  list.innerHTML = '';
+  KUNUZ_LIST.forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'kunuz-item';
+    btn.innerHTML = `
+      <span class="emoji">${k.emoji}</span>
+      <span class="title">${k.title}</span>
+      <span class="arrow"><i class="fas fa-chevron-left"></i></span>
+    `;
+    btn.onclick = () => showKunuzDetail(k);
+    list.appendChild(btn);
+  });
+}
+
+function showKunuzDetail(k) {
+  document.getElementById('kunuzList').classList.add('hidden');
+  const detail = document.getElementById('kunuzDetail');
+  detail.classList.remove('hidden');
+  document.getElementById('kunuzDetailTitle').textContent = k.title;
+  const content = document.getElementById('kunuzDetailContent');
+  content.innerHTML = '';
+  k.items.forEach((item, idx) => {
+    const progKey = `kunuz_${k.id}_${idx}`;
+    const current = state.azkarProgress[progKey] || 0;
+    const div = document.createElement('div');
+    div.className = 'dhikr-card';
+    div.innerHTML = `
+      <div class="dhikr-text">${item.text}</div>
+      <div class="dhikr-ref">${item.ref || ''}</div>
+      <div class="count-row">
+        <button class="count-btn" data-key="${progKey}" data-max="${item.count}">+</button>
+        <span class="count-display" id="cnt_${progKey}">${current} / ${item.count}</span>
+        <button class="count-btn reset" data-key="${progKey}">↺</button>
+      </div>
+    `;
+    content.appendChild(div);
+  });
+  content.querySelectorAll('.count-btn').forEach(btn => {
+    btn.onclick = () => {
+      const key = btn.dataset.key;
+      if (btn.classList.contains('reset')) {
+        state.azkarProgress[key] = 0;
+      } else {
+        const max = parseInt(btn.dataset.max);
+        state.azkarProgress[key] = Math.min((state.azkarProgress[key] || 0) + 1, max);
+        if (state.azkarProgress[key] === max) Sound.complete();
+        else Sound.sebha();
+      }
+      const el = document.getElementById(`cnt_${key}`);
+      if (el) el.textContent = `${state.azkarProgress[key] || 0} / ${btn.dataset.max || ''}`;
+      saveState();
+    };
+  });
+}
+
+document.getElementById('backToKunuz')?.addEventListener('click', () => {
+  document.getElementById('kunuzDetail').classList.add('hidden');
+  document.getElementById('kunuzList').classList.remove('hidden');
+});
+
+// Call on init
+if (typeof renderKunuzList === 'function') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(renderKunuzList, 100);
+  });
+}
+// Also call now if already loaded
+try { renderKunuzList(); } catch(e) {}
+
+// Theme Toggle Button
+(function() {
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+  function updateIcon() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+  }
+  updateIcon();
+  btn.onclick = () => {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    state.settings = state.settings || {};
+    state.settings.theme = next;
+    localStorage.setItem('redro_theme', next);
+    updateIcon();
+    Sound.click();
+  };
+})();
