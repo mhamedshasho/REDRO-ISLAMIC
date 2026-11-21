@@ -15,6 +15,8 @@ env:
 jobs:
   build-apk:
     runs-on: ubuntu-24.04
+    env:
+      HAS_SIGNING: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,13 +50,13 @@ jobs:
           log-accepted-android-sdk-licenses: false
 
       - name: Prepare release signing key
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+        if: ${{ env.HAS_SIGNING == 'true' }}
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/release.keystore
 
       - name: Build signed release APK
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+        if: ${{ env.HAS_SIGNING == 'true' }}
         working-directory: android
         env:
           ANDROID_KEYSTORE_PATH: release.keystore
@@ -64,12 +66,12 @@ jobs:
         run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Build debug APK when signing secrets are not configured
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 == '' || secrets.ANDROID_KEYSTORE_PASSWORD == '' }}
+        if: ${{ env.HAS_SIGNING != 'true' }}
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Upload signed release APK
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+        if: ${{ env.HAS_SIGNING == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: redro-islamic-release-apk
@@ -78,7 +80,7 @@ jobs:
           retention-days: 30
 
       - name: Upload debug APK fallback
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 == '' || secrets.ANDROID_KEYSTORE_PASSWORD == '' }}
+        if: ${{ env.HAS_SIGNING != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: redro-islamic-debug-apk
