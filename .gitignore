@@ -4,5 +4,6 @@ android/.gradle/
 android/local.properties
 android/build/
 android/app/build/
+android/release.keystore
 .env
 .DS_Store

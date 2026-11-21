@@ -1,5 +1,7 @@
 apply plugin: 'com.android.application'
 
+def hasReleaseSigning = System.getenv('ANDROID_KEYSTORE_PASSWORD') != null && !System.getenv('ANDROID_KEYSTORE_PASSWORD').isEmpty()
+
 android {
     namespace = "com.redro.islamic"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,9 +18,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(System.getenv('ANDROID_KEYSTORE_PATH') ?: 'release.keystore')
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

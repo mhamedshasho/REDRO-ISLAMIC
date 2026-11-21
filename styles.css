@@ -906,6 +906,17 @@ body {
   text-align: center;
   line-height: 1.8;
 }
+.about-brand { display:flex; align-items:center; justify-content:center; gap:12px; margin:2px 0 16px; text-align:right; }
+.about-brand img { width:82px; height:82px; border-radius:50%; box-shadow:0 5px 18px rgba(127, 29, 29, .25); }
+.about-brand strong, .about-brand span { display:block; }
+.about-brand strong { color:var(--primary); font-size:1.05rem; }
+.about-brand span { color:#64748b; font-size:.82rem; direction:ltr; text-align:right; }
+.about-features { display:grid; gap:9px; margin:16px 0; text-align:right; }
+.about-features > div { display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:12px; background:rgba(127,29,29,.06); }
+.about-features i { width:28px; color:var(--primary); font-size:1.1rem; text-align:center; }
+.about-features strong, .about-features small { display:block; }
+.about-features strong { font-size:.9rem; }
+.about-features small { color:#64748b; font-size:.75rem; line-height:1.5; }
 .about-body .version { margin-top: 16px; color: #94a3b8; font-size: 0.85rem; }
 .about-body .credit { margin-top: 8px; color: var(--primary); font-weight: 600; }
 
