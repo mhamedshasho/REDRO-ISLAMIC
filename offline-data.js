@@ -4,6 +4,7 @@
   var DB_VERSION = 1;
   var SURAH_STORE = 'surahs';
   var AUDIO_CACHE = 'redro-quran-audio-v1';
+  var INTERFACE_CACHE = 'redro-interface-assets-v1';
 
   function openDb() {
     return new Promise(function (resolve, reject) {
@@ -54,6 +55,16 @@
       return response ? response.blob().then(function (blob) { return URL.createObjectURL(blob); }) : null;
     });
   }
+  function cacheInterfaceAssets(urls) {
+    if (!window.caches) return Promise.reject(new Error('cache-unavailable'));
+    return caches.open(INTERFACE_CACHE).then(function (cache) {
+      return Promise.all(urls.map(function (url) { return fetch(url).then(function (response) { if (!response.ok) throw new Error('resource-download-failed'); return cache.put(url, response); }); }));
+    });
+  }
+  function getInterfaceAssetCount() {
+    if (!window.caches) return Promise.resolve(0);
+    return caches.open(INTERFACE_CACHE).then(function (cache) { return cache.keys(); }).then(function (requests) { return requests.length; });
+  }
   function clearOffline() {
     var dbPromise = openDb().then(function (db) {
       return new Promise(function (resolve, reject) {
@@ -64,7 +75,8 @@
       });
     });
     var cachePromise = window.caches ? caches.delete(AUDIO_CACHE) : Promise.resolve();
-    return Promise.all([dbPromise, cachePromise]);
+    var interfacePromise = window.caches ? caches.delete(INTERFACE_CACHE) : Promise.resolve();
+    return Promise.all([dbPromise, cachePromise, interfacePromise]);
   }
   window.RedroOffline = {
     putSurah: putSurah,
@@ -72,6 +84,8 @@
     getAllSurahs: getAllSurahs,
     cacheAudio: cacheAudio,
     getCachedAudio: getCachedAudio,
+    cacheInterfaceAssets: cacheInterfaceAssets,
+    getInterfaceAssetCount: getInterfaceAssetCount,
     clearOffline: clearOffline,
     audioCacheName: AUDIO_CACHE
   };

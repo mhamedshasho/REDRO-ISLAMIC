@@ -491,6 +491,28 @@ async function refreshOfflineStatus() {
     if (surahs.length) setOfflineProgress((surahs.length / SURAH_NAMES.length) * 100, `المصحف محفوظ دون إنترنت: ${surahs.length} من ${SURAH_NAMES.length} سورة.`);
   } catch (_) {}
 }
+async function downloadInterfaceAssets() {
+  if (!window.RedroOffline) { setOfflineProgress(0, 'التخزين غير المتصل غير متاح على هذا الجهاز.'); return; }
+  if (!window.confirm('سيتم تنزيل خطوط Cairo وAmiri وأيقونات التطبيق لاستخدامها دون إنترنت. هل تريد المتابعة؟')) return;
+  const cssUrls = ['https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&family=Amiri:wght@400;700&display=swap', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css'];
+  try {
+    const resources = cssUrls.slice();
+    for (let i = 0; i < cssUrls.length; i += 1) {
+      const response = await fetch(cssUrls[i]);
+      if (!response.ok) throw new Error('stylesheet-download-failed');
+      const css = await response.text();
+      const matches = css.match(/url\(([^)]+)\)/g) || [];
+      matches.forEach(value => { const raw = value.slice(4, -1).replace(/["']/g, ''); try { resources.push(new URL(raw, cssUrls[i]).href); } catch (_) {} });
+    }
+    await RedroOffline.cacheInterfaceAssets(resources);
+    setOfflineProgress(100, `تم تنزيل الخطوط والأيقونات (${resources.length} ملفًا). أعد فتح التطبيق لتعمل دون إنترنت.`);
+  } catch (error) { console.error('Interface assets download error', error); setOfflineProgress(0, 'تعذر تنزيل الخطوط والأيقونات. تحقق من الإنترنت ثم أعد المحاولة.'); }
+}
+async function refreshInterfaceAssetsStatus() {
+  if (!window.RedroOffline || !RedroOffline.getInterfaceAssetCount) return;
+  const count = await RedroOffline.getInterfaceAssetCount().catch(() => 0);
+  if (count) setOfflineProgress(100, `الخطوط والأيقونات محفوظة دون إنترنت (${count} ملفًا).`);
+}
 function setupQuranReciter() {
   const select = document.getElementById('quranReciter');
   if (!select) return;
@@ -1321,6 +1343,7 @@ function setupSettingsUI() {
   document.getElementById('vibrationEnabled')?.addEventListener('change', e => { state.settings.vibration = e.target.checked; persistSettings(); });
   document.getElementById('soundEnabled')?.addEventListener('change', e => { state.settings.sound = e.target.checked; persistSettings(); });
   document.getElementById('downloadQuranBtn')?.addEventListener('click', downloadQuranText);
+  document.getElementById('downloadInterfaceAssetsBtn')?.addEventListener('click', downloadInterfaceAssets);
   document.getElementById('downloadAudioBtn')?.addEventListener('click', downloadCurrentAudio);
   document.getElementById('clearOfflineBtn')?.addEventListener('click', async () => {
     if (!window.RedroOffline || !window.confirm('حذف المصحف والأصوات المحفوظة على هذا الجهاز؟')) return;
@@ -1330,6 +1353,7 @@ function setupSettingsUI() {
   document.getElementById('importBackupBtn')?.addEventListener('click', () => document.getElementById('importBackupInput')?.click());
   document.getElementById('importBackupInput')?.addEventListener('change', e => { if (e.target.files[0]) importOfflineBackup(e.target.files[0]); e.target.value = ''; });
   refreshOfflineStatus();
+  refreshInterfaceAssetsStatus();
 }
 setupSettingsUI();
 applyTheme();
