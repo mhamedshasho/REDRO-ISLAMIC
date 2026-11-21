@@ -19,7 +19,8 @@
   <!-- Loading Overlay -->
   <div id="loading" class="loading-overlay">
     <div class="spinner"></div>
-    <p>جاري التحميل...</p>
+    <p id="loadingMessage">جاري التحميل...</p>
+    <button id="loadingRetry" class="secondary-btn hidden" type="button">إعادة المحاولة</button>
   </div>
 
   <!-- App Container -->
@@ -443,6 +444,31 @@
     </div>
   </div>
 
+  <script>
+    (function () {
+      var timer;
+      function showCompatibilityMessage() {
+        var loading = document.getElementById('loading');
+        var app = document.getElementById('app');
+        var message = document.getElementById('loadingMessage');
+        var retry = document.getElementById('loadingRetry');
+        if (message) message.textContent = 'يحتاج هذا الجهاز إلى تحديث WebView أو إعادة المحاولة.';
+        if (retry) {
+          retry.className = 'secondary-btn';
+          retry.onclick = function () { window.location.reload(); };
+        }
+        if (app) app.className = app.className.replace('hidden', '');
+        if (loading) loading.className = loading.className.replace('hidden', '');
+      }
+      window.addEventListener('error', function () { showCompatibilityMessage(); });
+      timer = window.setTimeout(function () {
+        var loading = document.getElementById('loading');
+        if (loading && loading.className.indexOf('hidden') === -1) showCompatibilityMessage();
+      }, 12000);
+      window.redroLoadingDone = function () { window.clearTimeout(timer); };
+    }());
+  </script>
+  <script src="legacy-polyfills.js"></script>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

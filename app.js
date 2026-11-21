@@ -1031,6 +1031,7 @@ function init() {
 
   // Hide loading
   setTimeout(() => {
+    if (window.redroLoadingDone) window.redroLoadingDone();
     $('#loading').classList.add('hidden');
     $('#app').classList.remove('hidden');
   }, 800);
