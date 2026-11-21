@@ -448,6 +448,49 @@ const QURAN_RECITERS = [
   { id: 'ar.minshawi', name: 'محمد صديق المنشاوي' },
   { id: 'ar.sudais', name: 'عبد الرحمن السديس' }
 ];
+function setOfflineProgress(percent, message) {
+  const bar = document.getElementById('offlineProgressBar');
+  const status = document.getElementById('offlineStatus');
+  if (bar) bar.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+  if (status && message) status.textContent = message;
+}
+function surahAyahsFromApi(arData, enData) {
+  return arData.data.ayahs.map((a, i) => ({
+    numberInSurah: a.numberInSurah,
+    number: a.number,
+    text: a.text,
+    translation: enData && enData.code === 200 && enData.data.ayahs[i] ? enData.data.ayahs[i].text : ''
+  }));
+}
+async function downloadQuranText() {
+  if (!window.RedroOffline) return setOfflineProgress(0, 'التخزين غير المتصل غير متاح على هذا المتصفح.');
+  if (!window.confirm('سيتم تنزيل نص المصحف كاملًا باستخدام الإنترنت. هل تريد المتابعة؟')) return;
+  try {
+    for (let i = 0; i < SURAH_NAMES.length; i += 1) {
+      const num = SURAH_NAMES[i].number;
+      const [arRes, enRes] = await Promise.all([
+        fetch(`https://api.alquran.cloud/v1/surah/${num}/quran-uthmani`),
+        fetch(`https://api.alquran.cloud/v1/surah/${num}/en.sahih`)
+      ]);
+      const arData = await arRes.json();
+      const enData = await enRes.json();
+      if (arData.code !== 200) throw new Error('quran-download-failed');
+      await RedroOffline.putSurah({ number: num, name: SURAH_NAMES[i].name, ayahs: surahAyahsFromApi(arData, enData), downloadedAt: Date.now() });
+      setOfflineProgress(((i + 1) / SURAH_NAMES.length) * 100, `تم تنزيل ${i + 1} من ${SURAH_NAMES.length} سورة`);
+    }
+    setOfflineProgress(100, 'تم تنزيل المصحف النصي كاملًا ويمكن استخدامه دون إنترنت.');
+  } catch (error) {
+    console.error('Offline Quran download error', error);
+    setOfflineProgress(0, 'توقف التنزيل. تحقق من الإنترنت ثم أعد المحاولة.');
+  }
+}
+async function refreshOfflineStatus() {
+  if (!window.RedroOffline) return;
+  try {
+    const surahs = await RedroOffline.getAllSurahs();
+    if (surahs.length) setOfflineProgress((surahs.length / SURAH_NAMES.length) * 100, `المصحف محفوظ دون إنترنت: ${surahs.length} من ${SURAH_NAMES.length} سورة.`);
+  } catch (_) {}
+}
 function setupQuranReciter() {
   const select = document.getElementById('quranReciter');
   if (!select) return;
@@ -498,6 +541,12 @@ async function loadSurah(num, name) {
   container.innerHTML = '<p style="text-align:center;padding:40px;">جاري التحميل...</p>';
 
   try {
+    const cached = window.RedroOffline ? await RedroOffline.getSurah(num).catch(() => null) : null;
+    if (cached && cached.ayahs) {
+      state.currentAyahs = cached.ayahs;
+      renderAyahs();
+      return;
+    }
     // Fetch Arabic + English translation together
     const [arRes, enRes] = await Promise.all([
       fetch(`https://api.alquran.cloud/v1/surah/${num}/quran-uthmani`),
@@ -507,12 +556,8 @@ async function loadSurah(num, name) {
     const enData = await enRes.json();
 
     if (arData.code === 200) {
-      state.currentAyahs = arData.data.ayahs.map((a, i) => ({
-        numberInSurah: a.numberInSurah,
-        number: a.number, // global ayah number for audio
-        text: a.text,
-        translation: enData.code === 200 ? enData.data.ayahs[i]?.text || '' : ''
-      }));
+      state.currentAyahs = surahAyahsFromApi(arData, enData);
+      if (window.RedroOffline) RedroOffline.putSurah({ number: num, name: name, ayahs: state.currentAyahs, downloadedAt: Date.now() }).catch(() => {});
       renderAyahs();
     } else {
       container.innerHTML = '<p>تعذر تحميل السورة</p>';
@@ -564,6 +609,39 @@ function toggleFavorite() {
 }
 
 let currentAudioIndex = 0;
+async function downloadCurrentAudio() {
+  if (!state.currentAyahs.length) { setOfflineProgress(0, 'افتح سورة أولًا ثم اختر تنزيل صوت السورة.'); return; }
+  if (!window.RedroOffline) { setOfflineProgress(0, 'التخزين الصوتي غير متاح على هذا الجهاز.'); return; }
+  if (!window.confirm('سيتم تنزيل صوت السورة الحالية للقارئ المختار. هل تريد المتابعة؟')) return;
+  const reader = (state.settings && state.settings.quranReciter) || 'ar.alafasy';
+  try {
+    for (let i = 0; i < state.currentAyahs.length; i += 1) {
+      const url = `https://cdn.islamic.network/quran/audio/128/${reader}/${state.currentAyahs[i].number}.mp3`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('audio-download-failed');
+      await RedroOffline.cacheAudio(url, response);
+      setOfflineProgress(((i + 1) / state.currentAyahs.length) * 100, `تم تنزيل صوت الآية ${i + 1} من ${state.currentAyahs.length}`);
+    }
+    setOfflineProgress(100, 'تم تنزيل صوت السورة للقارئ المختار.');
+  } catch (error) { console.error('Offline audio download error', error); setOfflineProgress(0, 'تعذر تنزيل الصوت. تحقق من الإنترنت ثم أعد المحاولة.'); }
+}
+async function exportOfflineBackup() {
+  const surahs = window.RedroOffline ? await RedroOffline.getAllSurahs() : [];
+  const backup = { version: 1, exportedAt: new Date().toISOString(), localStorage: {}, surahs: surahs };
+  for (let i = 0; i < localStorage.length; i += 1) { const key = localStorage.key(i); backup.localStorage[key] = localStorage.getItem(key); }
+  const blob = new Blob([JSON.stringify(backup)], { type: 'application/json' }); const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob); link.download = `redro-islamic-backup-${Date.now()}.json`; link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000); setOfflineProgress(100, 'تم تصدير النسخة الاحتياطية. الصوت لا يُضمّن لصغر حجم الملف.');
+}
+async function importOfflineBackup(file) {
+  try {
+    const text = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsText(file); });
+    const backup = JSON.parse(text);
+    Object.keys(backup.localStorage || {}).forEach(key => localStorage.setItem(key, backup.localStorage[key]));
+    if (window.RedroOffline) for (let i = 0; i < (backup.surahs || []).length; i += 1) await RedroOffline.putSurah(backup.surahs[i]);
+    loadState(); setupQuranReciter(); refreshOfflineStatus(); setOfflineProgress(100, 'تم استيراد النسخة الاحتياطية.');
+  } catch (error) { console.error('Backup import error', error); setOfflineProgress(0, 'ملف النسخة الاحتياطية غير صالح.'); }
+}
 function playSurahAudio() {
   if (!state.currentAyahs.length) return;
   stopAudio();
@@ -574,7 +652,7 @@ function playSurahAudio() {
   playNextAyah();
 }
 
-function playNextAyah() {
+async function playNextAyah() {
   if (currentAudioIndex >= state.currentAyahs.length) {
     stopAudio();
     return;
@@ -582,7 +660,14 @@ function playNextAyah() {
   const ayah = state.currentAyahs[currentAudioIndex];
   const reader = (state.settings && state.settings.quranReciter) || 'ar.alafasy';
   const audioUrl = `https://cdn.islamic.network/quran/audio/128/${reader}/${ayah.number}.mp3`;
-  state.audio = new Audio(audioUrl);
+  const audioIndex = currentAudioIndex;
+  let playableUrl = audioUrl;
+  if (window.RedroOffline) {
+    const cachedUrl = await RedroOffline.getCachedAudio(audioUrl).catch(() => null);
+    if (cachedUrl) { playableUrl = cachedUrl; state.audioObjectUrl = cachedUrl; }
+  }
+  if (audioIndex !== currentAudioIndex) return;
+  state.audio = new Audio(playableUrl);
   $('#audioStatus').textContent = `جاري تشغيل الآية ${ayah.numberInSurah}...`;
   state.audio.play().catch(() => {
     $('#audioStatus').textContent = 'تعذر تشغيل الصوت';
@@ -598,6 +683,7 @@ function stopAudio() {
     state.audio.pause();
     state.audio = null;
   }
+  if (state.audioObjectUrl) { URL.revokeObjectURL(state.audioObjectUrl); state.audioObjectUrl = null; }
   $('#playAudio').classList.remove('hidden');
   $('#stopAudio').classList.add('hidden');
   $('#audioStatus').classList.add('hidden');
@@ -1209,6 +1295,16 @@ function setupSettingsUI() {
   document.getElementById('previewAdhan')?.addEventListener('click', playSelectedAdhan);
   document.getElementById('vibrationEnabled')?.addEventListener('change', e => { state.settings.vibration = e.target.checked; persistSettings(); });
   document.getElementById('soundEnabled')?.addEventListener('change', e => { state.settings.sound = e.target.checked; persistSettings(); });
+  document.getElementById('downloadQuranBtn')?.addEventListener('click', downloadQuranText);
+  document.getElementById('downloadAudioBtn')?.addEventListener('click', downloadCurrentAudio);
+  document.getElementById('clearOfflineBtn')?.addEventListener('click', async () => {
+    if (!window.RedroOffline || !window.confirm('حذف المصحف والأصوات المحفوظة على هذا الجهاز؟')) return;
+    await RedroOffline.clearOffline(); setOfflineProgress(0, 'تم حذف البيانات المنزّلة.');
+  });
+  document.getElementById('exportBackupBtn')?.addEventListener('click', exportOfflineBackup);
+  document.getElementById('importBackupBtn')?.addEventListener('click', () => document.getElementById('importBackupInput')?.click());
+  document.getElementById('importBackupInput')?.addEventListener('change', e => { if (e.target.files[0]) importOfflineBackup(e.target.files[0]); e.target.value = ''; });
+  refreshOfflineStatus();
 }
 setupSettingsUI();
 applyTheme();

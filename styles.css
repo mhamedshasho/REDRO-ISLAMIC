@@ -96,6 +96,10 @@ body {
 .settings-action { width: 100%; margin-top: 8px; }
 .secondary-btn { border: 1px solid rgba(255,255,255,.16); background: transparent; color: inherit; border-radius: 10px; padding: 10px 14px; font-family: inherit; cursor: pointer; }
 .setting-hint { color: #94a3b8; font-size: .78rem; line-height: 1.6; margin: 10px 0 0; }
+.offline-progress { height: 8px; background: rgba(255,255,255,.1); border-radius: 99px; overflow: hidden; margin-top: 12px; }
+.offline-progress span { display:block; width:0; height:100%; background: linear-gradient(90deg,#b91c1c,#f59e0b); transition:width .2s; }
+.offline-status { min-height: 22px; color: #fbbf24; }
+.settings-divider { border:0; border-top:1px solid rgba(255,255,255,.1); margin:16px 0 4px; }
 [data-theme="light"] .settings-section { background: rgba(15,23,42,.04); border-color: rgba(15,23,42,.1); }
 
 /* Header */

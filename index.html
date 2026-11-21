@@ -406,6 +406,20 @@
         <audio id="adhanAudio" preload="none"></audio>
         <p class="setting-hint">عند اختيار المؤذن يبدأ تشغيل المعاينة تلقائيًا. سيستخدم إشعار Android صوت الأذان المضمّن لضمان العمل دون إنترنت، وتُحفظ اختياراتك محليًا.</p>
       </div>
+      <div class="settings-section offline-section">
+        <h4><i class="fas fa-cloud-arrow-down"></i> البيانات دون إنترنت</h4>
+        <p class="setting-hint">نزّل المصحف النصي كاملًا بإذنك ليعمل دون إنترنت. ويمكنك تنزيل صوت السورة المفتوحة بالقارئ المختار.</p>
+        <div class="offline-progress"><span id="offlineProgressBar"></span></div>
+        <p class="setting-hint offline-status" id="offlineStatus">لم يتم تنزيل بيانات دون إنترنت بعد.</p>
+        <button class="primary-btn settings-action" id="downloadQuranBtn"><i class="fas fa-book"></i> تنزيل المصحف النصي كاملًا</button>
+        <button class="secondary-btn settings-action" id="downloadAudioBtn"><i class="fas fa-volume-high"></i> تنزيل صوت السورة الحالية</button>
+        <button class="secondary-btn settings-action" id="clearOfflineBtn"><i class="fas fa-trash"></i> حذف البيانات المنزّلة</button>
+        <hr class="settings-divider">
+        <p class="setting-hint">للاحتفاظ بها بعد حذف التطبيق، صدّر نسخة احتياطية ثم استوردها بعد إعادة التثبيت.</p>
+        <button class="secondary-btn settings-action" id="exportBackupBtn"><i class="fas fa-file-export"></i> تصدير نسخة احتياطية</button>
+        <input id="importBackupInput" type="file" accept="application/json,.json" hidden>
+        <button class="secondary-btn settings-action" id="importBackupBtn"><i class="fas fa-file-import"></i> استيراد نسخة احتياطية</button>
+      </div>
       <div class="settings-section">
         <h4><i class="fas fa-mobile-screen-button"></i> سلوك التطبيق</h4>
         <label class="setting-row"><span>الاهتزاز</span><input type="checkbox" id="vibrationEnabled" class="toggle-input"><span class="toggle-ui"></span></label>
@@ -470,6 +484,7 @@
     }());
   </script>
   <script src="legacy-polyfills.js"></script>
+  <script src="offline-data.js"></script>
   <script src="app.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
