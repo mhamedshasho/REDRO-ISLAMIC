@@ -440,6 +440,19 @@
   </div>
 </div>
 
+<!-- First-run permissions setup -->
+<div id="permissionSetupModal" class="modal hidden">
+  <div class="modal-content permission-setup-modal">
+    <div class="modal-header"><h3><i class="fas fa-shield-halved"></i> إعداد الخدمات الضرورية</h3><button class="close-modal" id="closePermissionSetup"><i class="fas fa-times"></i></button></div>
+    <p class="permission-intro">حتى يعمل إشعار الأذان في وقته، اسمح للتطبيق بالإشعارات والموقع. يمكنك تخطي أي خطوة وإكمالها لاحقًا من الإعدادات.</p>
+    <div class="permission-step"><span class="permission-step-icon"><i class="fas fa-bell"></i></span><div><strong>إشعارات الأذان</strong><small id="notificationPermissionStatus">مطلوب لإظهار إشعار الأذان وتشغيل صوته.</small></div><button class="secondary-btn permission-action" id="setupNotificationsBtn">تفعيل</button></div>
+    <div class="permission-step"><span class="permission-step-icon"><i class="fas fa-location-dot"></i></span><div><strong>الموقع ومواقيت الصلاة</strong><small id="locationPermissionStatus">مطلوب لحساب مواقيت الصلاة حسب موقعك.</small></div><button class="secondary-btn permission-action" id="setupLocationBtn">تفعيل</button></div>
+    <div class="permission-step"><span class="permission-step-icon"><i class="fas fa-volume-high"></i></span><div><strong>صوت الأذان</strong><small>الصوت مضمّن داخل التطبيق، لكن يجب أن يكون صوت الهاتف وقناة الإشعارات مفعّلين.</small></div><span class="permission-done"><i class="fas fa-check"></i></span></div>
+    <p id="permissionSetupStatus" class="setting-hint"></p>
+    <button class="primary-btn settings-action" id="finishPermissionSetup">تم، ابدأ استخدام التطبيق</button>
+  </div>
+</div>
+
 <!-- Tafsir Modal -->
 <div id="tafsirModal" class="modal hidden">
   <div class="modal-content tafsir-modal">

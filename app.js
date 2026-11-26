@@ -1235,7 +1235,7 @@ const ADHAN_RECITERS = [
   { id: 'dubai', name: 'مشاري راشد - أذان دبي', url: 'https://cdn.aladhan.com/audio/adhans/a4.mp3' }
 ];
 const PRAYER_LABELS = { Fajr: 'الفجر', Dhuhr: 'الظهر', Asr: 'العصر', Maghrib: 'المغرب', Isha: 'العشاء' };
-const PRAYER_CHANNEL_ID = 'prayer-times-v2';
+const PRAYER_CHANNEL_ID = 'prayer-times-v3-adhan';
 const DEFAULT_PRAYER_NOTIFICATIONS = { Fajr: true, Dhuhr: true, Asr: true, Maghrib: true, Isha: true };
 state.settings = {
   theme: localStorage.getItem('redro_theme') || 'dark',
@@ -1300,13 +1300,50 @@ async function requestNotificationPermission() {
   if ('Notification' in window) { const p = await Notification.requestPermission(); return p === 'granted'; }
   return false;
 }
+async function updatePermissionSetupUI() {
+  const notificationStatus = document.getElementById('notificationPermissionStatus');
+  const locationStatus = document.getElementById('locationPermissionStatus');
+  const plugin = nativeLocalNotifications();
+  if (notificationStatus && plugin) {
+    const permission = await plugin.checkPermissions().catch(() => ({ display: 'prompt' }));
+    notificationStatus.textContent = permission.display === 'granted' ? 'تم السماح بالإشعارات.' : 'مطلوب لإظهار إشعار الأذان وتشغيل صوته.';
+  } else if (notificationStatus && 'Notification' in window) {
+    notificationStatus.textContent = Notification.permission === 'granted' ? 'تم السماح بإشعارات المتصفح.' : 'مطلوب لإظهار إشعار الأذان.';
+  }
+  if (locationStatus) locationStatus.textContent = localStorage.getItem('redro_location') ? 'تم حفظ موقعك ومواقيت الصلاة.' : 'مطلوب لحساب مواقيت الصلاة حسب موقعك.';
+}
+function showPermissionSetup() {
+  if (!isNativeAndroid() || localStorage.getItem('redro_permission_setup_done') === 'true') return;
+  const modal = document.getElementById('permissionSetupModal');
+  if (!modal) return;
+  modal.classList.remove('hidden'); updatePermissionSetupUI();
+}
+async function setupNotificationsFromPrompt() {
+  const ok = await requestNotificationPermission();
+  state.settings.notifications = ok; persistSettings();
+  const status = document.getElementById('permissionSetupStatus');
+  if (status) status.textContent = ok ? 'تم تفعيل الإشعارات. اضغط تفعيل الموقع لإكمال الإعداد.' : 'لم يتم منح الإشعارات. يمكنك تفعيلها لاحقًا من إعدادات الهاتف.';
+  updatePermissionSetupUI();
+  if (ok && state.prayerTimes) await schedulePrayerNotifications();
+}
+async function setupLocationFromPrompt() {
+  const status = document.getElementById('permissionSetupStatus');
+  await getLocation();
+  updatePermissionSetupUI();
+  if (status) status.textContent = localStorage.getItem('redro_location') ? 'تم تفعيل الموقع وتحديث مواقيت الصلاة.' : 'لم يتم منح الموقع. يمكنك تفعيله لاحقًا من الإعدادات.';
+}
+function finishPermissionSetup() {
+  localStorage.setItem('redro_permission_setup_done', 'true');
+  document.getElementById('permissionSetupModal')?.classList.add('hidden');
+  if (state.settings.notifications && state.prayerTimes) schedulePrayerNotifications();
+}
 function prayerDate(date, time) { const [h, m] = time.split(':').map(Number); const d = new Date(date); d.setHours(h, m, 0, 0); return d; }
 async function schedulePrayerNotifications() {
   const plugin = nativeLocalNotifications();
   if (!plugin || !state.prayerTimes || !state.settings.notifications) { updateNotificationStatus('الإشعارات مفعلة. افتح التطبيق دورياً على الويب، أو استخدم APK للجدولة بالخلفية.'); return; }
   try {
-    // Android يحفظ إعدادات القناة القديمة؛ إنشاء قناة v2 يفعّل صوت الأذان المضمّن.
-    if (plugin.deleteChannel) { try { await plugin.deleteChannel({ id: 'prayer-times' }); } catch (_) {} }
+    // قناة جديدة ضرورية لأن Android لا يغيّر صوت القناة بعد إنشائها.
+    if (plugin.deleteChannel) { for (const oldId of ['prayer-times', 'prayer-times-v2']) { try { await plugin.deleteChannel({ id: oldId }); } catch (_) {} } }
     await plugin.createChannel({ id: PRAYER_CHANNEL_ID, name: 'مواقيت الصلاة والأذان', description: 'إشعارات الأذان ومواقيت الصلاة', importance: 5, sound: 'adhan', vibration: true, lights: true });
     await plugin.cancel({ notifications: Array.from({ length: 35 }, (_, i) => ({ id: 2100 + Math.floor(i / 5) * 10 + (i % 5) })) });
     const now = new Date(); const notifications = [];
@@ -1326,6 +1363,10 @@ function playSelectedAdhan() { const reciter = ADHAN_RECITERS.find(r => r.id ===
 function playSebhaSound() { if (!state.settings.sound) return; try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 800; gain.gain.setValueAtTime(.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .1); osc.start(); osc.stop(ctx.currentTime + .1); } catch (_) {} }
 function setupSettingsUI() {
   document.getElementById('closeSettings')?.addEventListener('click', () => document.getElementById('settingsModal').classList.add('hidden'));
+  document.getElementById('closePermissionSetup')?.addEventListener('click', finishPermissionSetup);
+  document.getElementById('setupNotificationsBtn')?.addEventListener('click', setupNotificationsFromPrompt);
+  document.getElementById('setupLocationBtn')?.addEventListener('click', setupLocationFromPrompt);
+  document.getElementById('finishPermissionSetup')?.addEventListener('click', finishPermissionSetup);
   document.getElementById('closeTafsir')?.addEventListener('click', () => document.getElementById('tafsirModal').classList.add('hidden'));
   document.getElementById('settingsSearch')?.addEventListener('input', e => {
     const query = e.target.value.trim().toLowerCase();
@@ -1370,6 +1411,7 @@ function setupSettingsUI() {
   document.getElementById('importBackupInput')?.addEventListener('change', e => { if (e.target.files[0]) importOfflineBackup(e.target.files[0]); e.target.value = ''; });
   refreshOfflineStatus();
   refreshInterfaceAssetsStatus();
+  setTimeout(showPermissionSetup, 700);
 }
 setupSettingsUI();
 applyTheme();

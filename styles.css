@@ -563,6 +563,16 @@ body {
 .sebha-ring span { color: var(--text-muted); font-size: .8rem; }
 .sebha-goal-message { color: var(--success); background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.3); border-radius: 10px; padding: 9px 12px; margin: -8px auto 14px; max-width: 260px; font-weight: 700; }
 .settings-no-results { color: var(--text-muted); text-align: center; padding: 16px 8px; }
+.permission-setup-modal { max-width: 460px; }
+.permission-intro { color: var(--text-muted); line-height: 1.8; margin-bottom: 14px; }
+.permission-step { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid rgba(148,163,184,.2); }
+.permission-step > div { flex: 1; min-width: 0; }
+.permission-step strong, .permission-step small { display: block; }
+.permission-step strong { color: var(--text); }
+.permission-step small { color: var(--text-muted); font-size: .75rem; line-height: 1.5; margin-top: 3px; }
+.permission-step-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: var(--primary); background: rgba(220,38,38,.12); flex: 0 0 auto; }
+.permission-action { padding: 7px 12px; white-space: nowrap; }
+.permission-done { color: var(--success); font-size: 1.2rem; padding: 0 10px; }
 .sebha-btn {
   width: 160px;
   height: 160px;
