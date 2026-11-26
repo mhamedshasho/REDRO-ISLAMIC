@@ -833,6 +833,7 @@ function showAzkarList(key) {
   $('#azkarCatTitle').textContent = cat.title;
   $('#azkarCategories').classList.add('hidden');
   $('#azkarListView').classList.remove('hidden');
+  $('#azkar').classList.add('azkar-reading-active');
   const items = $('#azkarItems');
   items.innerHTML = '';
   const visibleItems = state.azkarViewMode === 'short'
@@ -1226,6 +1227,7 @@ function init() {
   $('#backToAzkarCats').onclick = () => {
     $('#azkarListView').classList.add('hidden');
     $('#azkarCategories').classList.remove('hidden');
+    $('#azkar').classList.remove('azkar-reading-active');
   };
 
   $('#azkarFullTab').onclick = () => {
