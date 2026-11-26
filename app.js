@@ -1358,7 +1358,7 @@ const ADHAN_RECITERS = [
   { id: 'dubai', name: 'مشاري راشد - أذان دبي', url: 'https://cdn.aladhan.com/audio/adhans/a4.mp3' }
 ];
 const PRAYER_LABELS = { Fajr: 'الفجر', Dhuhr: 'الظهر', Asr: 'العصر', Maghrib: 'المغرب', Isha: 'العشاء' };
-const PRAYER_CHANNEL_ID = 'prayer-times-v3-adhan';
+const PRAYER_CHANNEL_ID = 'prayer-times-v4-notification-volume';
 const DEFAULT_PRAYER_NOTIFICATIONS = { Fajr: true, Dhuhr: true, Asr: true, Maghrib: true, Isha: true };
 state.settings = {
   theme: localStorage.getItem('redro_theme') || 'dark',
@@ -1482,7 +1482,21 @@ async function schedulePrayerNotifications() {
     updateNotificationStatus(`تمت جدولة ${notifications.length} إشعاراً للأيام السبعة القادمة.`);
   } catch (error) { console.error('Notification schedule error', error); updateNotificationStatus('تعذر الجدولة. تحقق من صلاحية الإشعارات والمنبهات الدقيقة من إعدادات Android.'); }
 }
-function playSelectedAdhan() { const reciter = ADHAN_RECITERS.find(r => r.id === state.settings.reciter) || ADHAN_RECITERS[0]; const audio = document.getElementById('adhanAudio'); audio.src = reciter.url; audio.play().catch(() => updateNotificationStatus('اضغط معاينة الأذان مرة أخرى للسماح بتشغيل الصوت.')); }
+async function playSelectedAdhan() {
+  const reciter = ADHAN_RECITERS.find(r => r.id === state.settings.reciter) || ADHAN_RECITERS[0];
+  const nativeAdhan = window.Capacitor?.Plugins?.RedroAdhan;
+  if (isNativeAndroid() && nativeAdhan?.play) {
+    try {
+      await nativeAdhan.play({ url: reciter.url });
+      return;
+    } catch (error) {
+      console.error('Native adhan playback error', error);
+    }
+  }
+  const audio = document.getElementById('adhanAudio');
+  audio.src = reciter.url;
+  audio.play().catch(() => updateNotificationStatus('اضغط معاينة الأذان مرة أخرى للسماح بتشغيل الصوت.'));
+}
 function playSebhaSound() { if (!state.settings.sound) return; try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 800; gain.gain.setValueAtTime(.15, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(.001, ctx.currentTime + .1); osc.start(); osc.stop(ctx.currentTime + .1); } catch (_) {} }
 function setupSettingsUI() {
   document.getElementById('closeSettings')?.addEventListener('click', () => document.getElementById('settingsModal').classList.add('hidden'));
