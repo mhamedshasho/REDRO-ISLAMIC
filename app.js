@@ -18,6 +18,7 @@ let state = {
   azkarProgress: {},
   azkarViewMode: 'full',
   azkarCategory: null,
+  azkarReaderIndex: 0,
   favorites: [],
   settings: null,
   showTranslation: false,
@@ -774,72 +775,60 @@ function renderAzkarCategories() {
 function showAzkarList(key) {
   const cat = AZKAR_DATA[key];
   state.azkarCategory = key;
+  if (!Number.isInteger(state.azkarReaderIndex)) state.azkarReaderIndex = 0;
   $('#azkarCatTitle').textContent = cat.title;
   $('#azkarCategories').classList.add('hidden');
   $('#azkarListView').classList.remove('hidden');
   const items = $('#azkarItems');
   items.innerHTML = '';
-  const completeAll = document.createElement('button');
-  completeAll.className = 'azkar-complete-all';
-  completeAll.innerHTML = '<i class="fas fa-check-double"></i> إكمال جميع أذكار القسم';
-  completeAll.onclick = () => {
-    if (!window.confirm('تحديد جميع أذكار هذا القسم كمكتملة؟')) return;
-    cat.items.forEach((item, idx) => { state.azkarProgress[`${key}_${idx}`] = item.count; });
-    saveState(); showAzkarList(key);
-  };
-  items.appendChild(completeAll);
-
   const visibleItems = state.azkarViewMode === 'short'
     ? cat.items.filter((item, idx) => item.short === true || idx < Math.min(5, cat.items.length))
     : cat.items;
-  visibleItems.forEach((item, visibleIdx) => {
-    const idx = cat.items.indexOf(item);
-    const progKey = `${key}_${idx}`;
-    const current = state.azkarProgress[progKey] || 0;
-    const div = document.createElement('div');
-    div.className = 'azkar-item';
-    div.dataset.azkarIndex = visibleIdx;
-    const evidence = item.ref || getAzkarEvidence(key, idx, item);
-    div.innerHTML = `
-      <div class="azkar-text">${item.text}</div>
-      <button class="evidence-toggle" type="button" aria-expanded="false"><i class="fas fa-book-open"></i> الدليل والمصدر</button>
-      <div class="azkar-evidence hidden"><i class="fas fa-quote-right"></i> ${evidence}</div>
-      <div class="azkar-meta">
-        <span>المطلوب: ${item.count}</span>
-        <div class="azkar-counter">
-          <button class="count-btn" aria-label="تسبيح الذكر" data-key="${progKey}" data-max="${item.count}">+</button>
-          <span class="count-display" id="cnt_${progKey}">${current}</span>
-          <button class="count-btn complete" aria-label="إكمال الذكر" data-key="${progKey}" data-max="${item.count}"><i class="fas fa-check"></i></button>
-          <button class="count-btn reset" aria-label="إعادة الذكر" data-key="${progKey}">↺</button>
-        </div>
-      </div>
-    `;
-    items.appendChild(div);
-  });
+  state.azkarReaderIndex = Math.max(0, Math.min(visibleItems.length - 1, state.azkarReaderIndex));
+  const item = visibleItems[state.azkarReaderIndex];
+  const idx = cat.items.indexOf(item);
+  const progKey = `${key}_${idx}`;
+  const current = state.azkarProgress[progKey] || 0;
+  const completed = cat.items.filter((entry, entryIdx) => (state.azkarProgress[`${key}_${entryIdx}`] || 0) >= entry.count).length;
+  const evidence = item.ref || getAzkarEvidence(key, idx, item);
+  const div = document.createElement('article');
+  div.className = 'azkar-reader-card';
+  div.innerHTML = `
+    <div class="azkar-reader-progress">${state.azkarReaderIndex + 1} / ${visibleItems.length}</div>
+    <div class="azkar-text">${item.text}</div>
+    <button class="evidence-toggle" type="button" aria-expanded="true"><i class="fas fa-chevron-up"></i> إخفاء الدليل</button>
+    <div class="azkar-evidence"><i class="fas fa-book-open"></i> ${evidence}</div>
+    <div class="azkar-count-area">
+      <div class="azkar-total"><span>إجمالي الأذكار</span><strong>${completed}/${cat.items.length}</strong></div>
+      <button class="reader-count-btn" aria-label="تسبيح الذكر" data-key="${progKey}" data-max="${item.count}">${current}<small> / ${item.count}</small></button>
+      <div class="azkar-repeat"><span>عدد مرات الذكر</span><strong>${item.count}</strong></div>
+    </div>
+    <div class="azkar-reader-actions">
+      <button class="reader-action" data-action="prev"><i class="fas fa-chevron-right"></i><span>السابق</span></button>
+      <button class="reader-action primary" data-action="next"><i class="fas fa-chevron-left"></i><span>التالي</span></button>
+      <button class="reader-action" data-action="reset"><i class="fas fa-rotate-left"></i><span>إعادة</span></button>
+      <button class="reader-action" data-action="complete"><i class="fas fa-check"></i><span>إكمال</span></button>
+    </div>
+  `;
+  items.appendChild(div);
 
-  items.querySelectorAll('.evidence-toggle').forEach(btn => {
-    btn.onclick = () => {
-      const box = btn.nextElementSibling;
-      const open = box.classList.toggle('hidden') === false;
-      btn.setAttribute('aria-expanded', String(open));
-    };
-  });
-
-  items.querySelectorAll('.count-btn').forEach(btn => {
-    btn.onclick = (e) => {
-      const key = btn.dataset.key;
-      if (btn.classList.contains('reset')) {
-        state.azkarProgress[key] = 0;
-      } else if (btn.classList.contains('complete')) {
-        state.azkarProgress[key] = parseInt(btn.dataset.max, 10);
-      } else {
-        const max = parseInt(btn.dataset.max);
-        state.azkarProgress[key] = Math.min((state.azkarProgress[key] || 0) + 1, max);
-      }
-      $(`#cnt_${key}`).textContent = state.azkarProgress[key] || 0;
-      saveState();
-      updateDailyProgress();
-    };
+  const evidenceBtn = div.querySelector('.evidence-toggle');
+  evidenceBtn.onclick = () => {
+    const box = div.querySelector('.azkar-evidence');
+    const hidden = box.classList.toggle('hidden');
+    evidenceBtn.innerHTML = hidden ? '<i class="fas fa-chevron-down"></i> إظهار الدليل' : '<i class="fas fa-chevron-up"></i> إخفاء الدليل';
+  };
+  div.querySelector('.reader-count-btn').onclick = () => {
+    state.azkarProgress[progKey] = Math.min((state.azkarProgress[progKey] || 0) + 1, item.count);
+    saveState(); updateDailyProgress(); showAzkarList(key);
+  };
+  div.querySelectorAll('.reader-action').forEach(btn => btn.onclick = () => {
+    const action = btn.dataset.action;
+    if (action === 'prev') state.azkarReaderIndex = Math.max(0, state.azkarReaderIndex - 1);
+    if (action === 'next') state.azkarReaderIndex = Math.min(visibleItems.length - 1, state.azkarReaderIndex + 1);
+    if (action === 'reset') state.azkarProgress[progKey] = 0;
+    if (action === 'complete') state.azkarProgress[progKey] = item.count;
+    saveState(); updateDailyProgress(); showAzkarList(key);
   });
 
   let startX = null;
@@ -849,13 +838,8 @@ function showAzkarList(key) {
     const delta = e.changedTouches[0].clientX - startX;
     startX = null;
     if (Math.abs(delta) < 45) return;
-    const cards = Array.from(items.querySelectorAll('.azkar-item'));
-    const current = cards.findIndex(card => {
-      const rect = card.getBoundingClientRect();
-      return rect.top >= items.getBoundingClientRect().top - 30;
-    });
-    const next = Math.max(0, Math.min(cards.length - 1, current + (delta < 0 ? 1 : -1)));
-    if (cards[next]) cards[next].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    state.azkarReaderIndex = Math.max(0, Math.min(visibleItems.length - 1, state.azkarReaderIndex + (delta < 0 ? 1 : -1)));
+    showAzkarList(key);
   };
 }
 
