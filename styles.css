@@ -481,11 +481,17 @@ body {
 .azkar-cat span { font-weight: 600; font-size: 0.95rem; }
 
 .azkar-items { display: flex; flex-direction: column; gap: 12px; }
+.azkar-view-tabs { display: flex; gap: 8px; margin: 12px 0 8px; background: var(--card); padding: 5px; border-radius: 14px; box-shadow: var(--shadow); }
+.azkar-view-tabs button { flex: 1; border: 0; border-radius: 10px; padding: 11px 8px; background: transparent; color: var(--muted, #64748b); font-family: inherit; font-size: .92rem; font-weight: 700; cursor: pointer; }
+.azkar-view-tabs button.active { background: var(--primary); color: #fff; }
+.azkar-swipe-hint { text-align: center; color: var(--muted, #64748b); font-size: .82rem; margin: 8px 0 14px; }
+.azkar-swipe-hint i { margin-left: 5px; }
 .azkar-item {
   background: var(--card);
   border-radius: var(--radius);
   padding: 16px;
   box-shadow: var(--shadow);
+  scroll-margin: 24px;
 }
 .azkar-text {
   font-family: 'Amiri', serif;
@@ -501,6 +507,10 @@ body {
   font-size: 0.95rem;
   color: #64748b;
 }
+.evidence-toggle { border: 0; background: transparent; color: var(--primary-dark); font-family: inherit; font-size: .86rem; font-weight: 700; padding: 4px 0 10px; cursor: pointer; }
+.evidence-toggle i { margin-left: 5px; }
+.azkar-evidence { border-right: 3px solid var(--primary); background: rgba(16, 185, 129, .09); border-radius: 10px; padding: 10px 12px; margin: 0 0 13px; color: var(--text); font-size: .84rem; line-height: 1.8; }
+.azkar-evidence i { color: var(--primary); margin-left: 5px; }
 .azkar-counter {
   display: flex;
   align-items: center;

@@ -16,6 +16,8 @@ let state = {
   deviceHeading: 0,
   deeds: [],
   azkarProgress: {},
+  azkarViewMode: 'full',
+  azkarCategory: null,
   favorites: [],
   settings: null,
   showTranslation: false,
@@ -42,12 +44,14 @@ const AZKAR_DATA = {
     items: [
       { text: 'أَصْبَحْنَا وَأَصْبَحَ الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', count: 1 },
       { text: 'اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَٰهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَىٰ عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ', count: 1 },
-      { text: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ...', count: 1 },
+      { text: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ', count: 1, ref: 'سورة البقرة، الآية 255' },
       { text: 'قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ', count: 3 },
       { text: 'قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِن شَرِّ مَا خَلَقَ ۝ وَمِن شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِن شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِن شَرِّ حَاسِدٍ إِذَا حَسَدَ', count: 3 },
       { text: 'قُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِن شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ', count: 3 },
       { text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ', count: 100 },
-      { text: 'رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ ﷺ نَبِيًّا', count: 3 }
+      { text: 'رَضِيتُ بِاللَّهِ رَبًّا، وَبِالْإِسْلَامِ دِينًا، وَبِمُحَمَّدٍ ﷺ نَبِيًّا', count: 3 },
+      { text: 'اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعِلْمَ النَّافِعَ، وَالرِّزْقَ الطَّيِّبَ، وَالْعَمَلَ الْمُتَقَبَّلَ', count: 1 },
+      { text: 'بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ', count: 3 }
     ]
   },
   evening: {
@@ -56,10 +60,10 @@ const AZKAR_DATA = {
     items: [
       { text: 'أَمْسَيْنَا وَأَمْسَى الْمُلْكُ لِلَّهِ، وَالْحَمْدُ لِلَّهِ، لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ', count: 1 },
       { text: 'اللَّهُمَّ بِكَ أَمْسَيْنَا، وَبِكَ أَصْبَحْنَا، وَبِكَ نَحْيَا، وَبِكَ نَمُوتُ، وَإِلَيْكَ الْمَصِيرُ', count: 1 },
-      { text: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ...', count: 1 },
-      { text: 'قُلْ هُوَ اللَّهُ أَحَدٌ ...', count: 3 },
-      { text: 'قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ...', count: 3 },
-      { text: 'قُلْ أَعُوذُ بِرَبِّ النَّاسِ ...', count: 3 },
+      { text: 'اللَّهُ لَا إِلَٰهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ', count: 1, ref: 'سورة البقرة، الآية 255' },
+      { text: 'قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ', count: 3, ref: 'سورة الإخلاص' },
+      { text: 'قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ ۝ مِنْ شَرِّ مَا خَلَقَ ۝ وَمِنْ شَرِّ غَاسِقٍ إِذَا وَقَبَ ۝ وَمِنْ شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ ۝ وَمِنْ شَرِّ حَاسِدٍ إِذَا حَسَدَ', count: 3, ref: 'سورة الفلق' },
+      { text: 'قُلْ أَعُوذُ بِرَبِّ النَّاسِ ۝ مَلِكِ النَّاسِ ۝ إِلَٰهِ النَّاسِ ۝ مِنْ شَرِّ الْوَسْوَاسِ الْخَنَّاسِ ۝ الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ ۝ مِنَ الْجِنَّةِ وَالنَّاسِ', count: 3, ref: 'سورة الناس' },
       { text: 'أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ', count: 3 },
       { text: 'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ', count: 100 }
     ]
@@ -769,6 +773,7 @@ function renderAzkarCategories() {
 
 function showAzkarList(key) {
   const cat = AZKAR_DATA[key];
+  state.azkarCategory = key;
   $('#azkarCatTitle').textContent = cat.title;
   $('#azkarCategories').classList.add('hidden');
   $('#azkarListView').classList.remove('hidden');
@@ -784,13 +789,21 @@ function showAzkarList(key) {
   };
   items.appendChild(completeAll);
 
-  cat.items.forEach((item, idx) => {
+  const visibleItems = state.azkarViewMode === 'short'
+    ? cat.items.filter((item, idx) => item.short === true || idx < Math.min(5, cat.items.length))
+    : cat.items;
+  visibleItems.forEach((item, visibleIdx) => {
+    const idx = cat.items.indexOf(item);
     const progKey = `${key}_${idx}`;
     const current = state.azkarProgress[progKey] || 0;
     const div = document.createElement('div');
     div.className = 'azkar-item';
+    div.dataset.azkarIndex = visibleIdx;
+    const evidence = item.ref || getAzkarEvidence(key, idx, item);
     div.innerHTML = `
       <div class="azkar-text">${item.text}</div>
+      <button class="evidence-toggle" type="button" aria-expanded="false"><i class="fas fa-book-open"></i> الدليل والمصدر</button>
+      <div class="azkar-evidence hidden"><i class="fas fa-quote-right"></i> ${evidence}</div>
       <div class="azkar-meta">
         <span>المطلوب: ${item.count}</span>
         <div class="azkar-counter">
@@ -802,6 +815,14 @@ function showAzkarList(key) {
       </div>
     `;
     items.appendChild(div);
+  });
+
+  items.querySelectorAll('.evidence-toggle').forEach(btn => {
+    btn.onclick = () => {
+      const box = btn.nextElementSibling;
+      const open = box.classList.toggle('hidden') === false;
+      btn.setAttribute('aria-expanded', String(open));
+    };
   });
 
   items.querySelectorAll('.count-btn').forEach(btn => {
@@ -820,6 +841,32 @@ function showAzkarList(key) {
       updateDailyProgress();
     };
   });
+
+  let startX = null;
+  items.ontouchstart = (e) => { if (e.touches.length === 1) startX = e.touches[0].clientX; };
+  items.ontouchend = (e) => {
+    if (startX === null) return;
+    const delta = e.changedTouches[0].clientX - startX;
+    startX = null;
+    if (Math.abs(delta) < 45) return;
+    const cards = Array.from(items.querySelectorAll('.azkar-item'));
+    const current = cards.findIndex(card => {
+      const rect = card.getBoundingClientRect();
+      return rect.top >= items.getBoundingClientRect().top - 30;
+    });
+    const next = Math.max(0, Math.min(cards.length - 1, current + (delta < 0 ? 1 : -1)));
+    if (cards[next]) cards[next].scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+}
+
+function getAzkarEvidence(category, index, item) {
+  if (category === 'morning' && index === 0) return 'دعاء الصباح الثابت في صحيح مسلم، كتاب الذكر والدعاء.';
+  if (category === 'morning' && index >= 3 && index <= 5) return 'سور الإخلاص والفلق والناس؛ وهي من القرآن الكريم، وتُقرأ في أذكار الصباح والمساء.';
+  if (category === 'evening' && index === 0) return 'دعاء المساء الوارد في أذكار اليوم والليلة؛ راجع صحيح مسلم في أذكار الصباح والمساء.';
+  if (category === 'sleep') return 'من أذكار النوم الواردة في كتب السنة الصحيحة؛ راجع حصن المسلم وتخريجه.';
+  if (category === 'afterPrayer') return 'من الأذكار الثابتة بعد الصلاة؛ راجع صحيح مسلم، كتاب المساجد ومواضع الصلاة.';
+  if (item.text.indexOf('آية الكرسي') !== -1) return 'سورة البقرة، الآية 255.';
+  return 'ذكر من الأذكار المأثورة. يظهر التخريج التفصيلي عندما يكون مثبتًا في بيانات الذكر.';
 }
 
 // ==================== Sebha ====================
@@ -1139,6 +1186,19 @@ function init() {
   $('#backToAzkarCats').onclick = () => {
     $('#azkarListView').classList.add('hidden');
     $('#azkarCategories').classList.remove('hidden');
+  };
+
+  $('#azkarFullTab').onclick = () => {
+    state.azkarViewMode = 'full';
+    $('#azkarFullTab').classList.add('active');
+    $('#azkarShortTab').classList.remove('active');
+    if (state.azkarCategory) showAzkarList(state.azkarCategory);
+  };
+  $('#azkarShortTab').onclick = () => {
+    state.azkarViewMode = 'short';
+    $('#azkarShortTab').classList.add('active');
+    $('#azkarFullTab').classList.remove('active');
+    if (state.azkarCategory) showAzkarList(state.azkarCategory);
   };
 
   $('#surahSearch').oninput = (e) => renderSurahList(e.target.value);
