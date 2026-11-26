@@ -1591,3 +1591,130 @@ body {
   align-items: center;
   justify-content: center;
 }
+
+
+/* REDRO DESIGN SYSTEM — unified crimson palette */
+:root {
+  color-scheme: light;
+  --primary: #dc2626;
+  --primary-dark: #b91c1c;
+  --primary-light: #ef4444;
+  --accent: #dc2626;
+  --bg: #f7f7f8;
+  --card: #ffffff;
+  --surface: #f1f1f3;
+  --text: #202024;
+  --text-muted: #707078;
+  --border: rgba(32,32,36,.10);
+  --danger: #dc2626;
+  --success: #15803d;
+  --shadow: 0 5px 22px rgba(32, 12, 12, .07);
+  --header-bg: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --primary: #f04444;
+  --primary-dark: #ff6262;
+  --primary-light: #ff7777;
+  --accent: #f04444;
+  --bg: #101012;
+  --card: #1b1b1f;
+  --surface: #25252a;
+  --text: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --border: rgba(255,255,255,.09);
+  --danger: #ff6b6b;
+  --success: #4ade80;
+  --shadow: 0 7px 26px rgba(0,0,0,.24);
+  --header-bg: linear-gradient(135deg, #9f171d 0%, #5f1016 100%);
+}
+html, body { background: var(--bg); color: var(--text); }
+body { transition: background-color .22s ease, color .22s ease; }
+.card, .prayer-card:not(.next), .action-card, .surah-item, .azkar-cat,
+.azkar-item, .azkar-featured-card, .azkar-list-row, .kunuz-item,
+.more-item, .ayahs-container, .tafsir-box, .settings-section,
+.modal-content, .settings-search-wrap, .tafsir-search-wrap {
+  background-color: var(--card);
+  color: var(--text);
+  border-color: var(--border);
+}
+.section-title, .section-header h2, .tafsir-box h4,
+.tafsir-box strong, .bismillah, .dua-text { color: var(--primary-dark); }
+input, textarea, select { color: var(--text); }
+input::placeholder, textarea::placeholder { color: var(--text-muted); }
+.surah-search input, .settings-select, .settings-search-wrap,
+.tafsir-search-wrap { background: var(--card); color: var(--text); border-color: var(--border); }
+.progress-bar, .fast-day { background: var(--surface); }
+#progressText, .surah-meta, .surah-ayahs, .zakat-extra,
+.si-item .si-label, .about-brand span, .about-features small,
+.azkar-featured-card small, .azkar-list-row small { color: var(--text-muted); }
+.ayah { border-color: var(--border); }
+.ayah-trans { color: var(--text-muted); }
+.ayah.fav { background: rgba(220,38,38,.12); }
+.audio-status { background: rgba(220,38,38,.10); color: var(--primary-dark); }
+.more-item { background: var(--card) !important; color: var(--text) !important; }
+.more-item span, .more-item { color: var(--text) !important; }
+.more-item i { color: var(--primary) !important; }
+.azkar-landing-hero, .azkar-reader-header {
+  background: linear-gradient(135deg, #dc2626, #991b1b) !important;
+  border-bottom-color: #7f1d1d;
+}
+.azkar-featured-icon, .azkar-list-icon {
+  color: var(--primary-dark);
+  background: rgba(220,38,38,.10);
+}
+.azkar-search, .azkar-featured-card, .azkar-list-row {
+  border-color: var(--border);
+  color: var(--text);
+  background: var(--card);
+}
+.azkar-search { color: var(--text-muted); }
+.azkar-source-link, .azkar-reader-card .evidence-toggle { color: var(--primary-dark); }
+.action-icon.quran, .action-icon.azkar, .action-icon.sebha,
+.action-icon.qibla, .action-icon.zakat, .action-icon.deeds,
+.action-icon.ramadan, .action-icon.kunuz {
+  background: linear-gradient(135deg, #ef4444, #991b1b);
+}
+.kunuz-hero, .ramadan-hero {
+  background: linear-gradient(135deg, #7f1d1d, #450a0a);
+  color: #fff;
+}
+.season-banner, [data-season] .season-banner,
+[data-season] .prayer-hero {
+  background: linear-gradient(135deg, #dc2626, #7f1d1d) !important;
+  color: #fff;
+}
+[data-season] {
+  --primary: #dc2626 !important;
+  --primary-dark: #b91c1c !important;
+  --primary-light: #ef4444 !important;
+  --header-bg: linear-gradient(135deg, #dc2626, #7f1d1d) !important;
+}
+:root[data-theme="dark"] [data-season] {
+  --primary: #f04444 !important;
+  --primary-dark: #ff7777 !important;
+  --primary-light: #ff8b8b !important;
+  --header-bg: linear-gradient(135deg, #9f171d, #5f1016) !important;
+}
+.modal-content { background: var(--card) !important; color: var(--text) !important; }
+.modal-content h3, .modal-content p, .about-body, .about-body p,
+.modal-header h3 { color: var(--text) !important; }
+.about-body .version, .about-features small { color: var(--text-muted) !important; }
+.about-body .credit { color: var(--primary) !important; }
+.close-modal { background: var(--surface); color: var(--text); }
+.qibla-warning { background: rgba(220,38,38,.10); color: var(--primary-dark); border-color: rgba(220,38,38,.25); }
+:root[data-theme="dark"] .qibla-warning { background: rgba(220,38,38,.16); color: #fecaca; border-color: rgba(248,113,113,.35); }
+.loading-overlay {
+  background: radial-gradient(circle at 50% 35%, #b91c1c 0%, #7f1d1d 48%, #30090d 100%);
+  gap: 12px;
+}
+.loading-brand { width: 92px; height: 92px; object-fit: contain; border-radius: 24px; filter: drop-shadow(0 10px 24px rgba(0,0,0,.25)); }
+.loading-overlay p { color: rgba(255,255,255,.94); font-weight: 700; letter-spacing: .2px; }
+.spinner { width: 42px; height: 42px; border-width: 3px; border-color: rgba(255,255,255,.24); border-top-color: #fff; }
+button, .action-card, .card, .modal-content { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--primary-light); outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
