@@ -748,6 +748,15 @@ async function showTafsir() {
 function renderAzkarCategories() {
   const cont = $('#azkarCategories');
   cont.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'azkar-complete-all azkar-complete-global';
+  allBtn.innerHTML = '<i class="fas fa-list-check"></i> إكمال جميع الأذكار';
+  allBtn.onclick = () => {
+    if (!window.confirm('تحديد جميع الأذكار في كل الأقسام كمكتملة؟')) return;
+    Object.keys(AZKAR_DATA).forEach(key => AZKAR_DATA[key].items.forEach((item, idx) => { state.azkarProgress[`${key}_${idx}`] = item.count; }));
+    saveState(); updateDailyProgress();
+  };
+  cont.appendChild(allBtn);
   Object.keys(AZKAR_DATA).forEach(key => {
     const cat = AZKAR_DATA[key];
     const btn = document.createElement('button');
@@ -765,6 +774,15 @@ function showAzkarList(key) {
   $('#azkarListView').classList.remove('hidden');
   const items = $('#azkarItems');
   items.innerHTML = '';
+  const completeAll = document.createElement('button');
+  completeAll.className = 'azkar-complete-all';
+  completeAll.innerHTML = '<i class="fas fa-check-double"></i> إكمال جميع أذكار القسم';
+  completeAll.onclick = () => {
+    if (!window.confirm('تحديد جميع أذكار هذا القسم كمكتملة؟')) return;
+    cat.items.forEach((item, idx) => { state.azkarProgress[`${key}_${idx}`] = item.count; });
+    saveState(); showAzkarList(key);
+  };
+  items.appendChild(completeAll);
 
   cat.items.forEach((item, idx) => {
     const progKey = `${key}_${idx}`;
@@ -776,9 +794,10 @@ function showAzkarList(key) {
       <div class="azkar-meta">
         <span>المطلوب: ${item.count}</span>
         <div class="azkar-counter">
-          <button class="count-btn" data-key="${progKey}" data-max="${item.count}">+</button>
+          <button class="count-btn" aria-label="تسبيح الذكر" data-key="${progKey}" data-max="${item.count}">+</button>
           <span class="count-display" id="cnt_${progKey}">${current}</span>
-          <button class="count-btn reset" data-key="${progKey}">↺</button>
+          <button class="count-btn complete" aria-label="إكمال الذكر" data-key="${progKey}" data-max="${item.count}"><i class="fas fa-check"></i></button>
+          <button class="count-btn reset" aria-label="إعادة الذكر" data-key="${progKey}">↺</button>
         </div>
       </div>
     `;
@@ -790,6 +809,8 @@ function showAzkarList(key) {
       const key = btn.dataset.key;
       if (btn.classList.contains('reset')) {
         state.azkarProgress[key] = 0;
+      } else if (btn.classList.contains('complete')) {
+        state.azkarProgress[key] = parseInt(btn.dataset.max, 10);
       } else {
         const max = parseInt(btn.dataset.max);
         state.azkarProgress[key] = Math.min((state.azkarProgress[key] || 0) + 1, max);

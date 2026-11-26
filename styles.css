@@ -463,7 +463,7 @@ body {
   background: var(--card);
   border: none;
   border-radius: var(--radius);
-  padding: 20px 12px;
+  padding: 24px 12px;
   text-align: center;
   box-shadow: var(--shadow);
   cursor: pointer;
@@ -498,27 +498,33 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: #64748b;
 }
 .azkar-counter {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .count-btn {
   background: var(--primary);
   color: white;
   border: none;
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  font-size: 1.1rem;
+  font-size: 1.35rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.count-btn.complete { background: var(--success); font-size: 1rem; }
+.count-btn.reset { background: transparent; color: var(--primary-dark); border: 2px solid var(--primary-dark); }
+.count-btn:active { transform: scale(.9); }
+.azkar-complete-all { width: 100%; border: 0; border-radius: 14px; padding: 15px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; font-size: 1rem; font-weight: 700; font-family: inherit; cursor: pointer; box-shadow: var(--shadow); margin-bottom: 4px; }
+.azkar-complete-all i { margin-left: 7px; }
+.azkar-complete-global { grid-column: 1 / -1; margin-bottom: 2px; }
 .count-display {
   font-weight: 700;
   font-size: 1.1rem;
