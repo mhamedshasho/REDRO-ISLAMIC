@@ -783,23 +783,47 @@ async function showTafsir() {
 function renderAzkarCategories() {
   const cont = $('#azkarCategories');
   cont.innerHTML = '';
-  const allBtn = document.createElement('button');
-  allBtn.className = 'azkar-complete-all azkar-complete-global';
-  allBtn.innerHTML = '<i class="fas fa-list-check"></i> إكمال جميع الأذكار';
-  allBtn.onclick = () => {
-    if (!window.confirm('تحديد جميع الأذكار في كل الأقسام كمكتملة؟')) return;
-    Object.keys(AZKAR_DATA).forEach(key => AZKAR_DATA[key].items.forEach((item, idx) => { state.azkarProgress[`${key}_${idx}`] = item.count; }));
-    saveState(); updateDailyProgress();
-  };
-  cont.appendChild(allBtn);
-  Object.keys(AZKAR_DATA).forEach(key => {
+  const keys = Object.keys(AZKAR_DATA);
+  const featuredKeys = ['api_27', 'api_28', 'api_1', 'api_25'].filter(key => AZKAR_DATA[key]);
+  cont.innerHTML = `
+    <div class="azkar-landing-hero">
+      <div class="azkar-hero-icon"><i class="fas fa-book-open"></i></div>
+      <div><h3>حصن المسلم</h3><p>أذكار صحيحة من الكتاب والسنة، مرتبة وسهلة القراءة</p></div>
+      <div class="azkar-source-badge"><i class="fas fa-shield-halved"></i> مصدر موثوق</div>
+    </div>
+    <div class="azkar-landing-tools">
+      <label class="azkar-search"><i class="fas fa-search"></i><input id="azkarCategorySearch" type="search" placeholder="ابحث في أبواب الأذكار..." aria-label="البحث في أبواب الأذكار"></label>
+      <button class="azkar-complete-all" id="completeAllAzkar"><i class="fas fa-list-check"></i> إكمال الكل</button>
+    </div>
+    <div class="azkar-section-label"><span>الأذكار اليومية</span><small>الأكثر استخدامًا</small></div>
+    <div class="azkar-featured-grid" id="azkarFeaturedGrid"></div>
+    <div class="azkar-section-label all"><span>جميع أبواب حصن المسلم</span><small>${keys.length} بابًا</small></div>
+    <div class="azkar-all-list" id="azkarAllList"></div>
+  `;
+  const featured = $('#azkarFeaturedGrid');
+  const all = $('#azkarAllList');
+  const makeButton = (key, featuredMode) => {
     const cat = AZKAR_DATA[key];
     const btn = document.createElement('button');
-    btn.className = 'azkar-cat';
-    btn.innerHTML = `<i class="fas ${cat.icon}"></i><span>${cat.title}</span>`;
+    btn.className = featuredMode ? 'azkar-featured-card' : 'azkar-list-row';
+    btn.dataset.search = cat.title.toLowerCase();
+    btn.innerHTML = featuredMode
+      ? `<span class="azkar-featured-icon"><i class="fas ${cat.icon}"></i></span><span class="azkar-card-copy"><strong>${cat.title}</strong><small>${cat.items.length} أذكار</small></span><i class="fas fa-chevron-left azkar-arrow"></i>`
+      : `<span class="azkar-list-icon"><i class="fas ${cat.icon}"></i></span><span><strong>${cat.title}</strong><small>${cat.items.length} أذكار</small></span><i class="fas fa-chevron-left azkar-arrow"></i>`;
     btn.onclick = () => showAzkarList(key);
-    cont.appendChild(btn);
-  });
+    return btn;
+  };
+  featuredKeys.forEach(key => featured.appendChild(makeButton(key, true)));
+  keys.filter(key => !featuredKeys.includes(key)).forEach(key => all.appendChild(makeButton(key, false)));
+  $('#completeAllAzkar').onclick = () => {
+    if (!window.confirm('تحديد جميع الأذكار في كل الأقسام كمكتملة؟')) return;
+    keys.forEach(key => AZKAR_DATA[key].items.forEach((item, idx) => { state.azkarProgress[`${key}_${idx}`] = item.count; }));
+    saveState(); updateDailyProgress(); renderAzkarCategories();
+  };
+  $('#azkarCategorySearch').oninput = (event) => {
+    const query = event.target.value.trim().toLowerCase();
+    [featured, all].forEach(list => list.querySelectorAll('button').forEach(btn => { btn.classList.toggle('hidden', query && !btn.dataset.search.includes(query)); }));
+  };
 }
 
 function showAzkarList(key) {
