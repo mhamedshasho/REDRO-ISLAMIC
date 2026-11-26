@@ -1856,3 +1856,254 @@ button {
     font-size: 0.78rem;
   }
 }
+
+
+/* REDRO ISLAMIC — redesigned home dashboard */
+#home {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px 14px 28px;
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(220,38,38,.055), transparent 38%),
+    var(--bg);
+}
+#home .prayer-hero {
+  isolation: isolate;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 20px 18px 18px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 24px;
+  background: var(--header-bg);
+  box-shadow: 0 12px 30px rgba(127,29,29,.17);
+  text-align: center;
+}
+#home .prayer-hero::before {
+  z-index: -1;
+  inset: auto -20% -65% auto;
+  width: 85%;
+  height: 145%;
+  background: radial-gradient(circle, rgba(255,255,255,.13), transparent 68%);
+  pointer-events: none;
+}
+#home .location-row {
+  align-self: center;
+  margin: 0 0 8px;
+  padding: 6px 11px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 99px;
+  background: rgba(0,0,0,.10);
+  font-size: .82rem;
+}
+#home .loc-btn {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  margin-inline-start: 2px;
+}
+#home .next-label {
+  font-size: .83rem;
+  font-weight: 600;
+  color: rgba(255,255,255,.82);
+}
+#home .next-name {
+  margin: 2px 0 0;
+  font-size: 1.65rem;
+  line-height: 1.45;
+}
+#home .countdown {
+  display: inline-flex;
+  align-self: center;
+  justify-content: center;
+  min-width: 190px;
+  margin-top: 5px;
+  padding: 5px 16px 7px;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 14px;
+  background: rgba(0,0,0,.13);
+  font-size: clamp(1.8rem, 8vw, 2.25rem);
+  letter-spacing: 1px;
+  font-weight: 800;
+}
+#home .date-row {
+  margin-top: 7px;
+  font-size: .78rem;
+  color: rgba(255,255,255,.84);
+}
+#home .prayer-times-grid {
+  grid-template-columns: repeat(5, minmax(0,1fr));
+  gap: 7px;
+  margin: 0;
+}
+#home .prayer-card {
+  min-width: 0;
+  padding: 12px 3px 11px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 4px 14px rgba(15,23,42,.045);
+  transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+#home .prayer-card .icon {
+  margin-bottom: 5px;
+  color: var(--primary);
+  font-size: 1.05rem;
+}
+#home .prayer-card .name {
+  color: var(--text-muted);
+  font-size: .72rem;
+  white-space: nowrap;
+}
+#home .prayer-card .time {
+  color: var(--text);
+  font-size: .9rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+#home .prayer-card.next {
+  border-color: var(--primary);
+  background: linear-gradient(145deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 6px 17px rgba(220,38,38,.2);
+  transform: translateY(-2px);
+}
+#home .prayer-card.next .icon,
+#home .prayer-card.next .name,
+#home .prayer-card.next .time { color: #fff; }
+#home .quick-actions {
+  margin: 0;
+  padding: 16px 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+#home .section-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 13px;
+  color: var(--text);
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+#home .section-title::before {
+  content: '';
+  width: 4px;
+  height: 19px;
+  border-radius: 8px;
+  background: var(--primary);
+}
+#home .actions-grid {
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 9px;
+  margin: 0;
+}
+#home .action-card {
+  min-width: 0;
+  min-height: 104px;
+  gap: 7px;
+  padding: 11px 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background: var(--surface);
+  box-shadow: none;
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+#home .action-card:active {
+  transform: scale(.96);
+  border-color: var(--primary);
+}
+#home .action-icon {
+  width: 43px;
+  height: 43px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, var(--primary-light), var(--primary-dark)) !important;
+  color: #fff;
+  font-size: 1.18rem;
+  box-shadow: 0 5px 12px rgba(220,38,38,.16);
+}
+#home .action-card span {
+  color: var(--text);
+  font-size: .75rem;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+#home .daily-progress {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+#home .daily-progress h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: var(--text);
+  font-size: .98rem;
+  font-weight: 800;
+}
+#home .daily-progress h3::before {
+  content: '\f058';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  color: var(--primary);
+}
+#home .progress-bar {
+  height: 11px;
+  margin-bottom: 9px;
+  border-radius: 99px;
+  background: var(--surface);
+  overflow: hidden;
+}
+#home .progress-fill {
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+}
+#home #progressText {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: .8rem;
+  font-weight: 600;
+}
+:root[data-theme="dark"] #home {
+  background:
+    radial-gradient(ellipse at 100% 0%, rgba(240,68,68,.075), transparent 40%),
+    var(--bg);
+}
+:root[data-theme="dark"] #home .quick-actions,
+:root[data-theme="dark"] #home .daily-progress {
+  background: var(--card);
+  border-color: var(--border);
+}
+:root[data-theme="dark"] #home .action-card {
+  background: var(--surface);
+  border-color: var(--border);
+}
+:root[data-theme="dark"] #home .prayer-card:not(.next) {
+  background: var(--card);
+  border-color: var(--border);
+}
+@media (max-width: 390px) {
+  #home { padding-inline: 11px; gap: 14px; }
+  #home .prayer-times-grid { gap: 5px; }
+  #home .prayer-card { padding-inline: 2px; }
+  #home .prayer-card .name { font-size: .66rem; }
+  #home .prayer-card .time { font-size: .82rem; }
+  #home .actions-grid { gap: 7px; }
+  #home .action-card { min-height: 98px; }
+  #home .action-icon { width: 40px; height: 40px; }
+  #home .action-card span { font-size: .7rem; }
+}
+@media (max-width: 340px) {
+  #home .prayer-times-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  #home .actions-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
