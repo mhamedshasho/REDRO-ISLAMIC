@@ -1,11 +1,11 @@
-const CACHE_NAME = 'redro-islamic-v2';
+const CACHE_NAME = 'redro-islamic-v3';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
   './adhkar-api-data.js',
-  './manifest.json'
+  './manifest.json',\n  './legacy-polyfills.js',\n  './offline-data.js'
 ];
 
 self.addEventListener('install', (e) => {
