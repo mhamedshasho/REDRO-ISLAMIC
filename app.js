@@ -120,6 +120,36 @@ const AZKAR_DATA = {
   }
 };
 
+// المصدر المعتمد للأذكار: بيانات حصن المسلم كما ينشرها مشروع Islamic Pro.
+// لا نعيد صياغة النص أو ننسب تخريجاً من عندنا؛ نعرض النص والعدد كما وردا في المصدر.
+const AZKAR_API_SOURCE = 'حصن المسلم — الشيخ سعيد بن علي بن وهف القحطاني';
+const AZKAR_API_SOURCE_URL = 'https://hisnmuslim.com/';
+
+function useTrustedAdhkarApiData() {
+  if (!Array.isArray(window.REDRO_ADHKAR_API) || !window.REDRO_ADHKAR_API.length) return;
+  const mapped = {};
+  window.REDRO_ADHKAR_API.forEach(category => {
+    const key = `api_${category.id}`;
+    mapped[key] = {
+      title: category.category,
+      icon: category.id === 27 ? 'fa-sun' : category.id === 28 ? 'fa-bed' : category.id === 25 ? 'fa-pray' : 'fa-book-quran',
+      source: AZKAR_API_SOURCE,
+      sourceUrl: AZKAR_API_SOURCE_URL,
+      items: (category.array || []).map(item => ({
+        text: item.text,
+        count: Number(item.count) || 1,
+        audio: item.audio,
+        source: AZKAR_API_SOURCE,
+        sourceUrl: AZKAR_API_SOURCE_URL,
+        ref: `المصدر: ${AZKAR_API_SOURCE} — باب «${category.category}». النص والعدد من ملف البيانات العربي للمصدر.`,
+        apiId: item.id
+      }))
+    };
+  });
+  Object.keys(AZKAR_DATA).forEach(key => delete AZKAR_DATA[key]);
+  Object.assign(AZKAR_DATA, mapped);
+}
+
 const DEEDS_LIST = [
   'صلاة الفجر في جماعة أو في وقتها',
   'قراءة أذكار الصباح كاملة',
@@ -791,13 +821,14 @@ function showAzkarList(key) {
   const current = state.azkarProgress[progKey] || 0;
   const completed = cat.items.filter((entry, entryIdx) => (state.azkarProgress[`${key}_${entryIdx}`] || 0) >= entry.count).length;
   const evidence = item.ref || getAzkarEvidence(key, idx, item);
+  const sourceLink = item.sourceUrl ? `<a class="azkar-source-link" href="${item.sourceUrl}" target="_blank" rel="noopener">فتح المصدر الأصلي</a>` : '';
   const div = document.createElement('article');
   div.className = 'azkar-reader-card';
   div.innerHTML = `
     <div class="azkar-reader-progress">${state.azkarReaderIndex + 1} / ${visibleItems.length}</div>
     <div class="azkar-text">${item.text}</div>
     <button class="evidence-toggle" type="button" aria-expanded="true"><i class="fas fa-chevron-up"></i> إخفاء الدليل</button>
-    <div class="azkar-evidence"><i class="fas fa-book-open"></i> ${evidence}</div>
+    <div class="azkar-evidence"><i class="fas fa-book-open"></i> ${evidence}<br>${sourceLink}</div>
     <div class="azkar-count-area">
       <div class="azkar-total"><span>إجمالي الأذكار</span><strong>${completed}/${cat.items.length}</strong></div>
       <button class="reader-count-btn" aria-label="تسبيح الذكر" data-key="${progKey}" data-max="${item.count}">${current}<small> / ${item.count}</small></button>
@@ -1133,6 +1164,7 @@ function init() {
   const savedLocation = localStorage.getItem('redro_location');
   if (savedLocation) { try { state.location = { ...state.location, ...JSON.parse(savedLocation) }; } catch (_) {} }
   loadState();
+  useTrustedAdhkarApiData();
   renderSurahList();
   renderAzkarCategories();
   renderDeeds();

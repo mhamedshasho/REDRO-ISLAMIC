@@ -1,9 +1,10 @@
-const CACHE_NAME = 'redro-islamic-v1';
+const CACHE_NAME = 'redro-islamic-v2';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
   './app.js',
+  './adhkar-api-data.js',
   './manifest.json'
 ];
 
